@@ -36,6 +36,33 @@ def edit_user_milk(user, amount):
 	with open('milk.json', 'w') as f:
 		json.dump(balances, f, indent=4)
 
+async def pre_gambling(ctx, amount_to_bet):
+	bet = 0
+	try:
+		bet = float(amount_to_bet)
+	except ValueError:
+		await ctx.send('You must specify an amount to bet.')
+		return None
+
+	user_balance = 0
+	
+	try:
+		with open('milk.json', 'r') as f:
+			balances = json.load(f)
+		
+		user_balance = balances[ctx.author.name]
+		if bet > user_balance:
+			await ctx.send('You cannot bet more than your balance')
+			return None
+
+	except KeyError:
+		add_user_to_milk(ctx.author.name)
+
+		await ctx.send('You cannot bet with no milk')
+		return None
+	
+	return bet
+
 intents = discord.Intents.default()
 intents.members = True
 
@@ -169,31 +196,11 @@ class Gambling(commands.Cog):
 	@commands.command(name='coinflip')
 	async def coin_flip(self, ctx, amount_to_bet, heads_or_tails):
 		"""Bet your milk on a coinflip // `.coinflip {amount_to_bet} {heads_or_tails}`"""
-		bet = 0
-		try:
-			bet = float(amount_to_bet)
-		except ValueError:
-			await ctx.send('You must specify an amount to bet.')
-			return
-
-		user_balance = 0
-		
-		try:
-			with open('milk.json', 'r') as f:
-				balances = json.load(f)
-			
-			user_balance = balances[ctx.author.name]
-			if bet > user_balance:
-				await ctx.send('You cannot bet more than your balance')
-				return
-
-		except KeyError:
-			add_user_to_milk(ctx.author.name)
-
-			await ctx.send('You cannot bet with no milk')
+		bet = await pre_gambling(ctx, amount_to_bet)
+		if bet is None:
 			return
 		
-		flipping = discord.Embed(title=':coin: Flipping Coin...', color=discord.Color.blue())
+		flipping = discord.Embed(title=':coin: Flipping Coin...', color=0xffff00)
 		flipping_msg = await ctx.send('', embed=flipping)
 		await asyncio.sleep(1.5)
 
@@ -217,6 +224,48 @@ class Gambling(commands.Cog):
 									color=discord.Color.red())
 			await flipping_msg.edit(embed=message)
 
+	@commands.command()
+	async def blackjack(self, ctx, amount_to_bet):
+		"""Bet your milk to play Blackjack // `.blackjack {amount_to_bet}`"""
+		bet = await pre_gambling(ctx, amount_to_bet)
+		if bet is None:
+			return
+
+		suits = [':clubs:', ':spades:', ':hearts:', ':diamonds:']
+		numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K']
+		conversion = {1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, 'J': 10, 'Q': 10, 'K': 10}
+
+		dealer_nums = [random.choice(numbers), random.choice(numbers)]
+		dealer_suits = [random.choice(suits), random.choice(suits)]
+		dealer_str_initial = f'{dealer_suits[0]}{dealer_nums[0]}\t<:card:797302274535063582>'
+
+		player_nums = [random.choice(numbers), random.choice(numbers)]
+		player_suits = [random.choice(suits), random.choice(suits)]
+		player_str_initial = f'{player_suits[0]}{player_nums[0]}\t{player_suits[1]}{player_nums[1]}'
+
+		message1 = discord.Embed(title='Dealer\'s Hand', description=dealer_str_initial)
+		message1.add_field(name='Your Hand', value=player_str_initial)
+
+		initial_hands = await ctx.send('', embed=message1)
+		await initial_hands.add_reaction('✊')
+		await initial_hands.add_reaction('✋')
+
+		def check(reaction, user):
+			return user == ctx.author and str(reaction.emoji) in ['✊', '✋']
+		
+		try:
+			def wait_for_reaction():
+				reaction, _ = await self.bot.wait_for('reaction_add', timeout=10, check=check)
+
+				if reaction.emoji == '✊':
+					print('fist')
+				elif reaction.emoji == '✋':
+					print('hand')
+			
+			wait_for_reaction()
+		except asyncio.TimeoutError:
+			timeout = discord.Embed(title='Timed Out')
+			await initial_hands.edit(embed=timeout)
 
 bot.add_cog(Utilities(bot))
 bot.add_cog(Economy(bot))
