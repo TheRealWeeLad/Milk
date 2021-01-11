@@ -156,6 +156,22 @@ class Economy(commands.Cog):
 		
 		return new_str
 
+	@commands.command()
+	async def leaderboard(self, ctx):
+		"""Check the users with the top 5 milk amounts"""
+		with open('milk.json', 'r') as f:
+			balances = json.load(f)
+		
+		new_balances = sorted(balances.items(), key=lambda kv: kv[1], reverse=True)[:5]
+		
+		desc = ''
+		for i in new_balances:
+			i = map(str, i)
+			desc += ' - '.join(i) + '\n'
+
+		message = discord.Embed(title='Top 5 Milk Owners', description=desc, color=0xffff00)
+		await ctx.send('', embed=message)
+
 	@commands.command(name='balance')
 	async def check_balance(self, ctx, *account):
 		"""Check the amount of milk that you have acquired // `.balance [account_to_check]`"""
@@ -192,7 +208,28 @@ class Gambling(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 		self.emoji = ':game_die:'
-	
+
+	def blackjack_check_aces(self, hand, conversion):
+		num_of_aces = 0
+
+		for i in hand:
+			if i == 'A':
+				num_of_aces += 1
+
+		numsum = 0
+
+		for card in hand:
+				if card != 'A':
+					numsum += conversion[card]
+
+		for i in range(num_of_aces):
+			if numsum + 11 > 21:
+				numsum += 1
+			else:
+				numsum += 11
+		
+		return numsum
+
 	@commands.command(name='coinflip')
 	async def coin_flip(self, ctx, amount_to_bet, heads_or_tails):
 		"""Bet your milk on a coinflip // `.coinflip {amount_to_bet} {heads_or_tails}`"""
@@ -232,19 +269,28 @@ class Gambling(commands.Cog):
 			return
 
 		suits = [':clubs:', ':spades:', ':hearts:', ':diamonds:']
-		numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K']
-		conversion = {1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, 'J': 10, 'Q': 10, 'K': 10}
-
-		dealer_nums = [random.choice(numbers), random.choice(numbers)]
-		dealer_suits = [random.choice(suits), random.choice(suits)]
-		dealer_str_initial = f'{dealer_suits[0]}{dealer_nums[0]}\t<:card:797302274535063582>'
+		numbers = ['A', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K']
+		conversion = {2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, 'J': 10, 'Q': 10, 'K': 10}
 
 		player_nums = [random.choice(numbers), random.choice(numbers)]
 		player_suits = [random.choice(suits), random.choice(suits)]
 		player_str_initial = f'{player_suits[0]}{player_nums[0]}\t{player_suits[1]}{player_nums[1]}'
+		
+		if 'A' in player_nums:
+			player_sum = self.blackjack_check_aces(player_nums, conversion)
+		else:
+			player_sum = conversion[player_nums[0]] + conversion[player_nums[1]]
 
-		message1 = discord.Embed(title='Dealer\'s Hand', description=dealer_str_initial)
-		message1.add_field(name='Your Hand', value=player_str_initial)
+		dealer_nums = [random.choice(numbers)]
+		dealer_suits = [random.choice(suits)]
+		dealer_str_initial = f'{dealer_suits[0]}{dealer_nums[0]}\t<:card:797302274535063582>'
+		if 'A' in dealer_nums:
+			dealer_sum = self.blackjack_check_aces(dealer_nums, conversion)
+		else:
+			dealer_sum = conversion[dealer_nums[0]]
+
+		message1 = discord.Embed(title=f'Dealer\'s Hand ({dealer_sum})', description=dealer_str_initial)
+		message1.add_field(name=f'Your Hand ({player_sum})', value=player_str_initial)
 
 		initial_hands = await ctx.send('', embed=message1)
 		await initial_hands.add_reaction('✊')
@@ -254,18 +300,85 @@ class Gambling(commands.Cog):
 			return user == ctx.author and str(reaction.emoji) in ['✊', '✋']
 		
 		try:
-			def wait_for_reaction():
+			reaction, _ = await self.bot.wait_for('reaction_add', timeout=10, check=check)
+
+			while reaction.emoji == '✊':
+				player_nums.append(random.choice(numbers))
+				player_suits.append(random.choice(suits))
+				if 'A' in player_nums:
+					player_sum = self.blackjack_check_aces(player_nums, conversion)
+				else:
+					player_sum += conversion[player_nums[-1]]
+
+				player_str_next = player_str_initial + f'\t{player_suits[-1]}{player_nums[-1]}'
+				
+				message1.set_field_at(0, name=f'Your Hand ({player_sum})', value=player_str_next)
+
+				if player_sum > 21:
+					message1.add_field(name='Busted!', value=f'You lost {bet} milk units.', inline=False)
+					message1.color = discord.Color.red()
+					edit_user_milk(ctx.author.name, -bet)
+					await initial_hands.edit(embed=message1)
+					return
+				
+				await initial_hands.edit(embed=message1)
+				await initial_hands.clear_reactions()
+				await initial_hands.add_reaction('✊')
+				await initial_hands.add_reaction('✋')
+
 				reaction, _ = await self.bot.wait_for('reaction_add', timeout=10, check=check)
 
-				if reaction.emoji == '✊':
-					print('fist')
-				elif reaction.emoji == '✋':
-					print('hand')
+
+			dealer_nums.append(random.choice(numbers))
+			dealer_suits.append(random.choice(suits))
+			dealer_str = f'{dealer_suits[0]}{dealer_nums[0]}\t{dealer_suits[1]}{dealer_nums[1]}'
+			if 'A' in dealer_nums:
+				dealer_sum = self.blackjack_check_aces(dealer_nums, conversion)
+			else:
+				dealer_sum += conversion[dealer_nums[1]]
+			message1.title = f'Dealer\'s Hand ({dealer_sum})'
+			message1.description = dealer_str
+			await initial_hands.edit(embed=message1)
+
+			while dealer_sum <= 16:
+				await asyncio.sleep(1.5)
+
+				dealer_nums.append(random.choice(numbers))
+				dealer_suits.append(random.choice(suits))
+				if 'A' in dealer_nums:
+					dealer_sum = self.blackjack_check_aces(dealer_nums, conversion)
+				else:
+					dealer_sum += conversion[dealer_nums[-1]]
+				message1.title = f'Dealer\'s Hand ({dealer_sum})'
+				dealer_str += f'\t{dealer_suits[-1]}{dealer_nums[-1]}'
+				message1.description = dealer_str
+
+				await initial_hands.edit(embed=message1)
+
+			if dealer_sum > 21 or player_sum > dealer_sum:
+				message1.add_field(name='You won!', value=f'You won {bet} milk units.', inline=False)
+				message1.color = discord.Color.green()
+				edit_user_milk(ctx.author.name, bet)
+				await initial_hands.edit(embed=message1)
+				return
 			
-			wait_for_reaction()
+			elif player_sum < dealer_sum:
+				message1.add_field(name='You lost.', value=f'You lost {bet} milk units', inline=False)
+				message1.color = discord.Color.red()
+				edit_user_milk(ctx.author.name, -bet)
+				await initial_hands.edit(embed=message1)
+				return
+
+			elif player_sum == dealer_sum:
+				message1.add_field(name='Push!', value='It was a tie.', inline = False)
+				await initial_hands.edit(embed=message1)
+				return
+
 		except asyncio.TimeoutError:
 			timeout = discord.Embed(title='Timed Out')
 			await initial_hands.edit(embed=timeout)
+			await initial_hands.clear_reactions()
+
 
 bot.add_cog(Utilities(bot))
 bot.add_cog(Economy(bot))
@@ -337,7 +450,7 @@ async def on_command_error(ctx, error):
 		return
 
 	if isinstance(error, commands.UserInputError):
-		await ctx.send("Invalid input.")
+		await ctx.send("Invalid Arguments.")
 		return
 
 	if isinstance(error, commands.NoPrivateMessage):
