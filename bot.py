@@ -139,7 +139,11 @@ class Utilities(commands.Cog):
 	@commands.command(name='ping')
 	async def get_ping(self, ctx):
 		"""Get the bot's ping // `.ping`"""
-		await ctx.send(f'{int(self.bot.latency * 1000)}ms')
+		ping = ctx.message
+		pong = await ctx.send('Ping is')
+		delta = pong.created_at - ping.created_at
+		delta = int(delta.total_seconds() * 1000)
+		await pong.edit(content=f'Ping is {delta}ms\nLatency is {str(self.bot.latency * 1000)[:2]}ms')
 
 class Economy(commands.Cog):
 	"""Different commands that pertain to the economy"""
@@ -158,7 +162,7 @@ class Economy(commands.Cog):
 
 	@commands.command()
 	async def leaderboard(self, ctx):
-		"""Check the users with the top 5 milk amounts"""
+		"""Check the users with the top 5 milk amounts // `.leaderboard`"""
 		with open('milk.json', 'r') as f:
 			balances = json.load(f)
 		
@@ -202,6 +206,56 @@ class Economy(commands.Cog):
 			
 			bal = discord.Embed(title=f'{account_name}\'s Balance', description='0 milk units', color=discord.Color.green())
 			await ctx.send('', embed=bal)
+
+	@commands.command(name='daily')
+	async def daily_claim(self, ctx):
+		"""Claim a 1000 milk unit reward every day! // `.daily`"""
+		with open('daily.json', 'r') as f:
+			times = json.load(f)
+		
+		try:
+			old_time = times[ctx.author.name]
+
+			difference = time.time() - old_time
+
+			if difference >= 86400:
+				edit_user_milk(ctx.author.name, 1000)
+				embed = discord.Embed(title='You have received 1000 milk units!',
+									  description='Come back in 24 hours for another reward.',
+									  color=discord.Color.purple())
+				times[ctx.author.name] = time.time()
+
+			else:
+				string = ''
+				time_left = 86400 - difference
+
+				if time_left >= 3600:
+					hours = time_left // 3600
+					minutes = (time_left % 3600) // 60
+					string += str(int(hours)) + ' hr ' + str(int(minutes)) + ' min '
+				elif time_left >= 60:
+					minutes = (time_left % 3600) // 60
+					string += str(int(minutes)) + ' min '
+				
+				seconds = (time_left % 3600) % 60
+				string += str(int(seconds)) + ' sec'
+
+				embed = discord.Embed(title='You cannot use this command yet!',
+									  description=f'Please wait {string} to use this command.',
+									  color=discord.Color.red())
+		
+		except KeyError:
+			edit_user_milk(ctx.author.name, 1000)
+			embed = discord.Embed(title='You have received 1000 milk units!',
+									description='Come back in 24 hours for another reward.',
+									color=discord.Color.purple())
+			
+			times[ctx.author.name] = time.time()
+		
+		with open('daily.json', 'w') as f:
+			json.dump(times, f, indent=4)
+
+		await ctx.send('', embed=embed)
 
 class Gambling(commands.Cog):
 	"""Commands for gambling your milk"""
@@ -262,6 +316,7 @@ class Gambling(commands.Cog):
 			await flipping_msg.edit(embed=message)
 
 	@commands.command()
+	@commands.cooldown(5, 3)
 	async def blackjack(self, ctx, amount_to_bet):
 		"""Bet your milk to play Blackjack // `.blackjack {amount_to_bet}`"""
 		bet = await pre_gambling(ctx, amount_to_bet)
