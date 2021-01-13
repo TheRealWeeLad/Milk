@@ -77,49 +77,48 @@ class Utilities(commands.Cog):
 		self.emoji = ':wrench:'
 
 	@commands.command()
-	async def help(self, ctx, *cog):
-		"""Displays help message // `.help [section]`"""
-		try:
-			if not cog:
-				halp=discord.Embed(title='Section Listing',
-								description='Use `.help [section]` to find out more about them!',
-								color=discord.Color.blue())
-				cogs_desc = ''
-				for x in self.bot.cogs:
-					cogs_desc += ('{} {} - {}'.format(self.bot.cogs[x].emoji, x,self.bot.cogs[x].__doc__)+'\n')
-				halp.add_field(name='Sections',value=cogs_desc[0:len(cogs_desc)-1],inline=False)
-				cmds_desc = ''
-				
-				for y in self.bot.commands:
-					if not y.cog_name and not y.hidden:
-						cmds_desc += ('{} - {}'.format(y.name,y.help)+'\n')
-				if len(cmds_desc) > 0:
-					halp.add_field(name='Uncategorized Commands',value=cmds_desc[0:len(cmds_desc)-1],inline=False)
+	async def help(self, ctx, *command):
+		"""Displays help message\n\n`.help [command]`"""
+		if not command:
+			halp=discord.Embed(title='Command Listing',
+							description='Use `.help [command]` to find out more about them!',
+							color=discord.Color.blue())
+			for x in self.bot.cogs:
+				cog = self.bot.cogs[x]
+				cmds_str = ''
+				for cmd in cog.get_commands():
+					cmds_str += f'`.{cmd}` '
+				halp.add_field(name=cog.emoji + x, value=cmds_str, inline=False)
+
+			cmds_desc = ''
+			for y in self.bot.commands:
+				if not y.cog_name and not y.hidden:
+					cmds_desc += ('{} - {}'.format(y.name.title(), y.help)+'\n')
+			if len(cmds_desc) > 0:
+				halp.add_field(name='Uncategorized Commands',value=cmds_desc[0:len(cmds_desc)-1],inline=False)
+			await ctx.send('',embed=halp)
+		else:
+			if len(command) > 1:
+				halp = discord.Embed(title='Error!',description='You must specify a single command.',color=discord.Color.red())
 				await ctx.send('',embed=halp)
 			else:
-				if len(cog) > 1:
-					halp = discord.Embed(title='Error!',description='You must specify 1 section',color=discord.Color.red())
-					await ctx.send('',embed=halp)
-				else:
-					found = False
-					for x in self.bot.cogs:
-						for y in cog:
-							if x == y:
-								halp=discord.Embed(title=cog[0]+' Command Listing',description=self.bot.cogs[cog[0]].__doc__, color=discord.Color.blue())
-								for c in self.bot.get_cog(y).get_commands():
-									if not c.hidden:
-										halp.add_field(name=c.name,value=c.help,inline=False)
-								found = True
-					if not found:
-						halp = discord.Embed(title='Error!',description=f'{cog[0]} not found!',color=discord.Color.red())
-					await ctx.send('',embed=halp)
-		except:
-			await ctx.send(f'{ctx.guild.owner.mention} An error occurred')
+				found = False
+				for x in self.bot.cogs:
+					cog = self.bot.cogs[x]
+					for y in cog.walk_commands():
+						if command[0].lower() == y.name:
+							halp = discord.Embed(title='gg')
+							halp = discord.Embed(title=y.name.title() + ' Description', description=y.help, color=discord.Color.blue())
+
+							found = True
+				if not found:
+					halp = discord.Embed(title='Error!', description=f'{command[0]} not found!', color=discord.Color.red())
+				await ctx.send('',embed=halp)
 	
 	@commands.command(name='prefix')
 	@commands.has_permissions(administrator=True)
 	async def change_prefix(self, ctx, new_prefix):
-		"""Change the Bot's Prefix // `.prefix {new_prefix}`"""
+		"""Change the Bot's Prefix\n\n`.prefix {new_prefix}`"""
 		# Check validity
 		if len(new_prefix) == 1 and not new_prefix.isalpha():
 			with open('prefix.json', 'r') as f:
@@ -138,7 +137,7 @@ class Utilities(commands.Cog):
 
 	@commands.command(name='ping')
 	async def get_ping(self, ctx):
-		"""Get the bot's ping // `.ping`"""
+		"""Get the bot's ping\n\n`.ping`"""
 		ping = ctx.message
 		pong = await ctx.send('Ping is')
 		delta = pong.created_at - ping.created_at
@@ -162,7 +161,7 @@ class Economy(commands.Cog):
 
 	@commands.command()
 	async def leaderboard(self, ctx):
-		"""Check the users with the top 5 milk amounts // `.leaderboard`"""
+		"""Check the users with the top 5 milk amounts\n\n`.leaderboard`"""
 		with open('milk.json', 'r') as f:
 			balances = json.load(f)
 		
@@ -178,7 +177,7 @@ class Economy(commands.Cog):
 
 	@commands.command(name='balance')
 	async def check_balance(self, ctx, *account):
-		"""Check the amount of milk that you have acquired // `.balance [account_to_check]`"""
+		"""Check the amount of milk that you have acquired\n\n`.balance [account_to_check]`"""
 
 		account_member = None
 		if account:
@@ -209,7 +208,7 @@ class Economy(commands.Cog):
 
 	@commands.command(name='daily')
 	async def daily_claim(self, ctx):
-		"""Claim a 1000 milk unit reward every day! // `.daily`"""
+		"""Claim a 1000 milk unit reward every day!\n\n`.daily`"""
 		with open('daily.json', 'r') as f:
 			times = json.load(f)
 		
@@ -245,6 +244,7 @@ class Economy(commands.Cog):
 									  color=discord.Color.red())
 		
 		except KeyError:
+			add_user_to_milk(ctx.author.name)
 			edit_user_milk(ctx.author.name, 1000)
 			embed = discord.Embed(title='You have received 1000 milk units!',
 									description='Come back in 24 hours for another reward.',
@@ -286,7 +286,7 @@ class Gambling(commands.Cog):
 
 	@commands.command(name='coinflip')
 	async def coin_flip(self, ctx, amount_to_bet, heads_or_tails):
-		"""Bet your milk on a coinflip // `.coinflip {amount_to_bet} {heads_or_tails}`"""
+		"""Bet your milk on a coinflip\n\n`.coinflip {amount_to_bet} {heads_or_tails}`"""
 		bet = await pre_gambling(ctx, amount_to_bet)
 		if bet is None:
 			return
@@ -318,7 +318,7 @@ class Gambling(commands.Cog):
 	@commands.command()
 	@commands.cooldown(5, 3)
 	async def blackjack(self, ctx, amount_to_bet):
-		"""Bet your milk to play Blackjack // `.blackjack {amount_to_bet}`"""
+		"""Bet your milk to play Blackjack\n\n`.blackjack {amount_to_bet}`"""
 		bet = await pre_gambling(ctx, amount_to_bet)
 		if bet is None:
 			return
@@ -338,7 +338,7 @@ class Gambling(commands.Cog):
 
 		dealer_nums = [random.choice(numbers)]
 		dealer_suits = [random.choice(suits)]
-		dealer_str_initial = f'{dealer_suits[0]}{dealer_nums[0]}\t<:card:797302274535063582>'
+		dealer_str_initial = f'{dealer_suits[0]}{dealer_nums[0]}\t<:card:798689937436180490>'
 		if 'A' in dealer_nums:
 			dealer_sum = self.blackjack_check_aces(dealer_nums, conversion)
 		else:
@@ -444,6 +444,9 @@ bot.add_cog(Gambling(bot))
 async def on_message(ctx):
 	if ctx.author.id == bot.user.id:
 		return
+	
+	if bot.user.mentioned_in(ctx):
+		await ctx.channel.send(f'My prefix is `{get_prefix(None, ctx)}`')
 
 	await bot.process_commands(ctx)
 
