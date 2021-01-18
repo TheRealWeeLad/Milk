@@ -78,7 +78,11 @@ class Utilities(commands.Cog):
 
 	@commands.command()
 	async def help(self, ctx, *command):
-		"""Displays help message\n\n`.help [command]`"""
+		"""Description:
+		Displays help message
+		
+		Use:
+		`.help [command]`"""
 		if not command:
 			halp=discord.Embed(title='Command Listing',
 							description='Use `.help [command]` to find out more about them!',
@@ -118,7 +122,11 @@ class Utilities(commands.Cog):
 	@commands.command(name='prefix')
 	@commands.has_permissions(administrator=True)
 	async def change_prefix(self, ctx, new_prefix):
-		"""Change the Bot's Prefix\n\n`.prefix {new_prefix}`"""
+		"""Description:
+		Change the Bot's Prefix
+		
+		Use:
+		`.prefix {new_prefix}`"""
 		# Check validity
 		if len(new_prefix) == 1 and not new_prefix.isalpha():
 			with open('prefix.json', 'r') as f:
@@ -137,7 +145,11 @@ class Utilities(commands.Cog):
 
 	@commands.command(name='ping')
 	async def get_ping(self, ctx):
-		"""Get the bot's ping\n\n`.ping`"""
+		"""Description:
+		Get the bot's ping
+		
+		Use:
+		`.ping`"""
 		ping = ctx.message
 		pong = await ctx.send('Ping is')
 		delta = pong.created_at - ping.created_at
@@ -149,8 +161,10 @@ class Economy(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 		self.emoji = ':moneybag:'
-	
-	def remove_exclamation_point(self, string):
+		self.job_list = []
+		
+	@staticmethod
+	def remove_exclamation_point(string):
 		new_str = ''
 		for char in string:
 			if char == '!':
@@ -161,7 +175,11 @@ class Economy(commands.Cog):
 
 	@commands.command()
 	async def leaderboard(self, ctx):
-		"""Check the users with the top 5 milk amounts\n\n`.leaderboard`"""
+		"""Description:
+		Check the users with the top 5 milk amounts
+		
+		Use:
+		`.leaderboard`"""
 		with open('milk.json', 'r') as f:
 			balances = json.load(f)
 		
@@ -177,7 +195,11 @@ class Economy(commands.Cog):
 
 	@commands.command(name='balance')
 	async def check_balance(self, ctx, *account):
-		"""Check the amount of milk that you have acquired\n\n`.balance [account_to_check]`"""
+		"""Description:
+		Check the amount of milk that you have acquired
+		
+		Use:
+		`.balance [account_to_check]`"""
 
 		account_member = None
 		if account:
@@ -208,7 +230,11 @@ class Economy(commands.Cog):
 
 	@commands.command(name='daily')
 	async def daily_claim(self, ctx):
-		"""Claim a 1000 milk unit reward every day!\n\n`.daily`"""
+		"""Description:
+		Claim a 1000 milk unit reward every day!
+		
+		Use:
+		`.daily`"""
 		with open('daily.json', 'r') as f:
 			times = json.load(f)
 		
@@ -257,13 +283,53 @@ class Economy(commands.Cog):
 
 		await ctx.send('', embed=embed)
 
+	@commands.command()
+	async def work(self, ctx, *args):
+		"""Description:
+		Work at your job or choose a new job.
+		
+		Use:
+		`.work [job | list]`"""
+
+		with open('jobs.json', 'r') as f:
+			jobs = json.load(f)
+		
+		if args:
+			if len(args) > 1:
+				raise commands.UserInputError
+
+			if args[0] == 'list':
+				return
+
+			try:
+				jobs[ctx.author.name]
+			except KeyError:
+				pass
+			else:
+				embed = discord.Embed(title='You already have a job!', color=discord.Color.red())
+				await ctx.send('', embed=embed)
+				return
+			
+			if args[0] in self.job_list:
+				jobs[ctx.author.name] = args[0]
+				with open('jobs.json', 'w') as f:
+					json.dump(jobs, f, indent=4)
+
+			else:
+				embed = discord.Embed(title='This job does not exist.', color=discord.Color.red())
+				await ctx.send('', embed=embed)
+		
+		else:
+			pass
+
 class Gambling(commands.Cog):
 	"""Commands for gambling your milk"""
 	def __init__(self, bot):
 		self.bot = bot
 		self.emoji = ':game_die:'
 
-	def blackjack_check_aces(self, hand, conversion):
+	@staticmethod
+	def blackjack_check_aces(hand, conversion):
 		num_of_aces = 0
 
 		for i in hand:
@@ -286,7 +352,11 @@ class Gambling(commands.Cog):
 
 	@commands.command(name='coinflip')
 	async def coin_flip(self, ctx, amount_to_bet, heads_or_tails):
-		"""Bet your milk on a coinflip\n\n`.coinflip {amount_to_bet} {heads_or_tails}`"""
+		"""Description:
+		Bet your milk on a coinflip
+		
+		Use:
+		`.coinflip {amount_to_bet} {heads_or_tails}`"""
 		bet = await pre_gambling(ctx, amount_to_bet)
 		if bet is None:
 			return
@@ -318,7 +388,11 @@ class Gambling(commands.Cog):
 	@commands.command()
 	@commands.cooldown(5, 3)
 	async def blackjack(self, ctx, amount_to_bet):
-		"""Bet your milk to play Blackjack\n\n`.blackjack {amount_to_bet}`"""
+		"""Description:
+		   Bet your milk to play Blackjack
+
+		   Use:
+		   `.blackjack {amount_to_bet}`"""
 		bet = await pre_gambling(ctx, amount_to_bet)
 		if bet is None:
 			return
