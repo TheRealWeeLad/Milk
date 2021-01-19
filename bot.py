@@ -17,24 +17,27 @@ def get_prefix(client, message):
 		return '.'
 
 def add_user_to_milk(user):
-	with open('milk.json', 'r') as f:
-		balances = json.load(f)
-	
-	balances[user] = 0.0
+	with open('user.json', 'r') as f:
+		users = json.load(f)
 
-	with open('milk.json', 'w') as f:
-		json.dump(balances, f, indent=4)
+	if user in users:
+		users[user]["balance"] = 0.0
+	else:
+		users[user] = {"balance": 0.0, "daily": 0.0, "job": "unemployed"}
+
+	with open('user.json', 'w') as f:
+		json.dump(users, f, indent=4)
 
 def edit_user_milk(user, amount):
-	with open('milk.json', 'r') as f:
-		balances = json.load(f)
+	with open('user.json', 'r') as f:
+		users = json.load(f)
 	
-	balance = balances[user]
+	balance = users[user]["balance"]
 	balance += amount
-	balances[user] = balance
+	users[user]["balance"] = balance
 	
-	with open('milk.json', 'w') as f:
-		json.dump(balances, f, indent=4)
+	with open('user.json', 'w') as f:
+		json.dump(users, f, indent=4)
 
 async def pre_gambling(ctx, amount_to_bet):
 	bet = 0
@@ -47,10 +50,10 @@ async def pre_gambling(ctx, amount_to_bet):
 	user_balance = 0
 	
 	try:
-		with open('milk.json', 'r') as f:
-			balances = json.load(f)
+		with open('user.json', 'r') as f:
+			users = json.load(f)
 		
-		user_balance = balances[ctx.author.name]
+		user_balance = users[ctx.author.name]['balance']
 		if bet > user_balance:
 			await ctx.send('You cannot bet more than your balance')
 			return None
@@ -161,7 +164,7 @@ class Economy(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 		self.emoji = ':moneybag:'
-		self.job_list = []
+		self.job_list = ['gg']
 		
 	@staticmethod
 	def remove_exclamation_point(string):
@@ -180,10 +183,14 @@ class Economy(commands.Cog):
 		
 		Use:
 		`.leaderboard`"""
-		with open('milk.json', 'r') as f:
-			balances = json.load(f)
+		with open('user.json', 'r') as f:
+			users = json.load(f)
 		
-		new_balances = sorted(balances.items(), key=lambda kv: kv[1], reverse=True)[:5]
+		balance_list = {}
+		for user, val in users.items():
+			balance_list[user] = val['balance']
+		
+		new_balances = sorted(balance_list.items(), key=lambda kv: kv[1], reverse=True)[:5]
 		
 		desc = ''
 		for i in new_balances:
@@ -213,17 +220,17 @@ class Economy(commands.Cog):
 		
 		account_name = account_member.name
 		
-		with open('milk.json', 'r') as f:
-			balances = json.load(f)
+		with open('user.json', 'r') as f:
+			users = json.load(f)
 		
 		try:
-			bal = discord.Embed(title=f'{account_name}\'s Balance', description=f'{str(balances[account_name])} milk units', color=discord.Color.green())
+			bal = discord.Embed(title=f'{account_name}\'s Balance', description=f'{str(users[account_name]["balance"])} milk units', color=discord.Color.green())
 			await ctx.send('', embed=bal)
 		except KeyError:
-			balances[account_name] = 0.0
+			add_user_to_milk(account_name)
 
 			with open('milk.json', 'w') as f:
-				json.dump(balances, f, indent=4)
+				json.dump(users, f, indent=4)
 			
 			bal = discord.Embed(title=f'{account_name}\'s Balance', description='0 milk units', color=discord.Color.green())
 			await ctx.send('', embed=bal)
@@ -235,11 +242,11 @@ class Economy(commands.Cog):
 		
 		Use:
 		`.daily`"""
-		with open('daily.json', 'r') as f:
-			times = json.load(f)
+		with open('user.json', 'r') as f:
+			users = json.load(f)
 		
 		try:
-			old_time = times[ctx.author.name]
+			old_time = users[ctx.author.name]['daily']
 
 			difference = time.time() - old_time
 
@@ -248,7 +255,14 @@ class Economy(commands.Cog):
 				embed = discord.Embed(title='You have received 1000 milk units!',
 									  description='Come back in 24 hours for another reward.',
 									  color=discord.Color.purple())
-				times[ctx.author.name] = time.time()
+
+				with open('user.json', 'r') as f:
+					refreshed_users = json.load(f)
+				
+				refreshed_users[ctx.author.name]['daily'] = time.time()
+
+				with open('user.json', 'w') as f:
+					json.dump(refreshed_users, f, indent=4)
 
 			else:
 				string = ''
@@ -275,12 +289,15 @@ class Economy(commands.Cog):
 			embed = discord.Embed(title='You have received 1000 milk units!',
 									description='Come back in 24 hours for another reward.',
 									color=discord.Color.purple())
-			
-			times[ctx.author.name] = time.time()
-		
-		with open('daily.json', 'w') as f:
-			json.dump(times, f, indent=4)
 
+			with open('user.json', 'r') as f:
+				refreshed_users = json.load(f)
+			
+			refreshed_users[ctx.author.name]['daily'] = time.time()
+
+			with open('user.json', 'w') as f:
+				json.dump(refreshed_users, f, indent=4)
+		
 		await ctx.send('', embed=embed)
 
 	@commands.command()
@@ -291,8 +308,11 @@ class Economy(commands.Cog):
 		Use:
 		`.work [job | list]`"""
 
-		with open('jobs.json', 'r') as f:
-			jobs = json.load(f)
+		with open('user.json', 'r') as f:
+			users = json.load(f)
+
+		if ctx.author.name not in users:
+			add_user_to_milk(ctx.author.name)
 		
 		if args:
 			if len(args) > 1:
@@ -301,19 +321,15 @@ class Economy(commands.Cog):
 			if args[0] == 'list':
 				return
 
-			try:
-				jobs[ctx.author.name]
-			except KeyError:
-				pass
-			else:
+			if users[ctx.author.name]['job'] != 'unemployed':
 				embed = discord.Embed(title='You already have a job!', color=discord.Color.red())
 				await ctx.send('', embed=embed)
 				return
 			
 			if args[0] in self.job_list:
-				jobs[ctx.author.name] = args[0]
-				with open('jobs.json', 'w') as f:
-					json.dump(jobs, f, indent=4)
+				users[ctx.author.name]['job'] = args[0]
+				with open('user.json', 'w') as f:
+					json.dump(users, f, indent=4)
 
 			else:
 				embed = discord.Embed(title='This job does not exist.', color=discord.Color.red())
