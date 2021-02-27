@@ -23,7 +23,7 @@ def add_user_to_milk(user):
 	if user in users:
 		users[user]["balance"] = 0.0
 	else:
-		users[user] = {"balance": 0.0, "daily": 0.0, "job": "unemployed"}
+		users[user] = {"balance": 0.0, "daily": 0.0, "work_cd": 0.0, "job": "unemployed"}
 
 	with open('user.json', 'w') as f:
 		json.dump(users, f, indent=4)
@@ -71,6 +71,12 @@ intents.members = True
 
 bot = commands.Bot(command_prefix=get_prefix, intents=intents)
 bot.remove_command('help')
+
+
+class Job:
+	def __init__(self, name, salary):
+		self.name = name
+		self.salary = salary
 
 
 class Utilities(commands.Cog):
@@ -161,11 +167,25 @@ class Utilities(commands.Cog):
 
 class Economy(commands.Cog):
 	"""Different commands that pertain to the economy"""
+
+	working_gaming = False
+	working_mistake = False
+	working_cangaroo = False
+
+	canga_row = 0
+	canga_column = 0
+
 	def __init__(self, bot):
 		self.bot = bot
 		self.emoji = ':moneybag:'
-		self.job_list = ['gg']
-		
+		self.job_list = [Job('Simmons Gaming Industries', 250), Job('Midstake', 500), Job('Cangaroo Containment Facility', 1000)]
+		self.job_aliases = ['SMI', 'M', 'CCF']
+		self.job_names = [job.name for job in self.job_list]
+
+	@staticmethod
+	def get_working_bools():
+		return (Economy.working_gaming, Economy.working_mistake, Economy.working_cangaroo)
+
 	@staticmethod
 	def remove_exclamation_point(string):
 		new_str = ''
@@ -175,6 +195,26 @@ class Economy(commands.Cog):
 			new_str += char
 		
 		return new_str
+
+	@classmethod
+	async def gaming(self, ctx):
+		pass
+
+	@classmethod
+	async def mistake(self, ctx):
+		pass
+
+	@classmethod
+	async def cangaroo(self, message):
+		if message.content == str(Economy.canga_row) + ' ' + str(Economy.canga_column):
+			embed = discord.Embed(title='Good job! You caught the Cangaroo before it could escape. You have received 1000mu', color=discord.Color.green())
+			edit_user_milk(message.author.name, 1000)
+		else:
+			embed = discord.Embed(title='Too bad! You couldn\'t catch the Cangaroo before it escaped. Try again next time.')
+
+		await message.channel.send('', embed=embed)
+
+		Economy.working_cangaroo = False
 
 	@commands.command()
 	async def leaderboard(self, ctx):
@@ -315,28 +355,96 @@ class Economy(commands.Cog):
 			add_user_to_milk(ctx.author.name)
 		
 		if args:
-			if len(args) > 1:
-				raise commands.UserInputError
-
 			if args[0] == 'list':
-				return
+				jobs = '\n\n'.join([job.name + ' - ' + str(job.salary) + f'mu\n({self.job_aliases[self.job_list.index(job)]})' for job in self.job_list])
 
-			if users[ctx.author.name]['job'] != 'unemployed':
-				embed = discord.Embed(title='You already have a job!', color=discord.Color.red())
+				embed = discord.Embed(title='Use `.work [job]` to choose a job.', description=jobs, color=discord.Color.green())
 				await ctx.send('', embed=embed)
 				return
 			
-			if args[0] in self.job_list:
-				users[ctx.author.name]['job'] = args[0]
+			job = ' '.join(args)
+
+			if job in self.job_names or job in self.job_aliases:
+				if job in self.job_aliases:
+					job = self.job_names[self.job_aliases.index(job)]
+
+				users[ctx.author.name]['job'] = job
 				with open('user.json', 'w') as f:
 					json.dump(users, f, indent=4)
+
+				embed = discord.Embed(title=f'You are now working at {job}!', color=discord.Color.green())
+				await ctx.send('', embed=embed)
 
 			else:
 				embed = discord.Embed(title='This job does not exist.', color=discord.Color.red())
 				await ctx.send('', embed=embed)
 		
 		else:
-			pass
+			last_work_time = users[ctx.author.name]['work_cd']
+			difference = time.time() - last_work_time
+
+			if difference >= 3600:
+				users[ctx.author.name]['work_cd'] = time.time()
+
+				with open('user.json', 'w') as f:
+					json.dump(users, f, indent=4)
+
+				job = users[ctx.author.name]['job']
+				
+				if job == 'Simmons Gaming Industries':
+					await self.gaming(ctx)
+
+				elif job == 'Midstake':
+					await self.mistake(ctx)
+
+				elif job == 'Cangaroo Containment Facility':
+					emojis = [':llama:', ':dromedary_camel:', ':giraffe:', ':racehorse:', ':dog2:', ':ox:']
+					grid = [[], [], [], [], []]
+					grid_index = 0
+
+					for i in range(25):
+						if i % 5 == 0 and i != 0:
+							grid_index += 1
+						
+						grid[grid_index].append(random.choice(emojis))
+
+					canga_row = random.randint(0, 4)
+					canga_column = random.randint(0, 4)
+
+					grid[canga_column][canga_row] = ':kangaroo:'
+					Economy.canga_row, Economy.canga_column = canga_row + 1, canga_column + 1
+
+					grid_str = ''
+
+					for i in range(5):
+						for j in range(5):
+							grid_str += grid[i][j]
+						grid_str += '\n'
+
+					grid_embed = discord.Embed(title='The Cangaroo has escaped! Memorize the Cangaroo\'s location.', description=grid_str, color=discord.Color.purple())
+					grid_msg = await ctx.send('', embed=grid_embed)
+
+					await asyncio.sleep(5)
+
+					await grid_msg.delete()
+					instructions_embed = discord.Embed(title='Type which row and column the Cangaroo was last spotted separated by spaces.', color=discord.Color.purple())
+					await ctx.send('', embed=instructions_embed)
+
+					Economy.working_cangaroo = True
+				
+			else:
+				cd_str = ''
+				time_left = 3600 - difference
+
+				if time_left > 60:
+					minutes = int(time_left // 60)
+					cd_str += str(minutes) + 'min '
+				
+				seconds = int(time_left % 60)
+				cd_str += str(seconds) + 'sec'
+
+				embed = discord.Embed(title='This command is on cooldown.', description=f'You can work again in {cd_str}.')
+				await ctx.send('', embed=embed)
 
 class Gambling(commands.Cog):
 	"""Commands for gambling your milk"""
@@ -537,6 +645,9 @@ async def on_message(ctx):
 	
 	if bot.user.mentioned_in(ctx):
 		await ctx.channel.send(f'My prefix is `{get_prefix(None, ctx)}`')
+
+	if Economy.get_working_bools()[2] == True:
+		await Economy.cangaroo(ctx)
 
 	await bot.process_commands(ctx)
 
