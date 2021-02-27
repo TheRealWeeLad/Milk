@@ -1,37 +1,8 @@
 {
-    "\ub098\ub294 \ud55c\uad6d\uc5b4\ub97c \ubab0\ub77c": {
-        "daily": 1610422865.565837,
-        "balance": 0.0,
-        "job": "unemployed"
-    },
-    "sandels": {
-        "balance": 1000.0,
-        "daily": 1610497872.8343575,
-        "job": "unemployed"
-    },
-    "SavageSimdog": {
-        "balance": 1000.0,
-        "daily": 1610498393.9460495,
-        "job": "unemployed"
-    },
-    "Whiteboy_brick": {
-        "balance": 0.0,
-        "daily": 1610423382.7618806,
-        "job": "unemployed"
-    },
-    "Best Bot gg lol poggers": {
-        "balance": 0.0,
-        "daily": 0.0,
-        "job": "unemployed"
-    },
-    "OwO": {
-        "balance": 0.0,
-        "daily": 0.0,
-        "job": "unemployed"
-    },
     "TheRealWeeLad": {
-        "balance": 4000.0,
+        "balance": 5000.0,
         "daily": 1614044038.153824,
+        "work_cooldown": 0,
         "job": "Cangaroo Containment Facility"
     }
 }
