@@ -1,6 +1,6 @@
 # Overview
 
-This is a simple discord bot made in python with economy features
+This is a simple discord bot made in python with economy features.
 
 ---
 
