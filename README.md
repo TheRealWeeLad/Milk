@@ -20,3 +20,6 @@ This is a simple discord bot made in python with economy features.
 ## Gambling
 - `.coinflip` - bet your milk on a coinflip
 - `.blackjack` - bet your milk to play blackjack
+
+## Games
+- `.hangman` - play hangman with up to 3 other players
