@@ -2,6 +2,7 @@ import os, sys, math, traceback
 from Utilities import Utilities
 from Economy import Economy
 from Gambling import Gambling
+from Games import Games
 from Utils import (discord, json, get_prefix)
 
 from discord.ext import commands
@@ -21,6 +22,7 @@ bot_prefix = '.'
 bot.add_cog(Utilities(bot))
 bot.add_cog(Economy(bot))
 bot.add_cog(Gambling(bot))
+bot.add_cog(Games(bot))
 
 
 @bot.event
