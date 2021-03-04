@@ -16,7 +16,7 @@ def get_prefix(client, message):
 	except KeyError:
 		return '.'
 
-def add_user_to_milk(user):
+def add_user_to_milk(user: str):
 	with open('user.json', 'r') as f:
 		users = json.load(f)
 
@@ -28,7 +28,7 @@ def add_user_to_milk(user):
 	with open('user.json', 'w') as f:
 		json.dump(users, f, indent=4)
 
-def edit_user_milk(user, amount):
+def edit_user_milk(user: str, amount: float):
 	with open('user.json', 'r') as f:
 		users = json.load(f)
 	
@@ -39,7 +39,7 @@ def edit_user_milk(user, amount):
 	with open('user.json', 'w') as f:
 		json.dump(users, f, indent=4)
 
-async def pre_gambling(ctx, amount_to_bet):
+async def pre_gambling(ctx, amount_to_bet: float):
 	bet = 0
 	try:
 		bet = float(amount_to_bet)
@@ -65,6 +65,53 @@ async def pre_gambling(ctx, amount_to_bet):
 		return None
 	
 	return bet
+
+async def is_on_cooldown(ctx, length: float, purpose: str):
+	with open('user.json', 'r') as f:
+		users = json.load(f)
+
+	if ctx.author.name not in users:
+		add_user_to_milk(ctx.author.name)
+
+	old_time = users[ctx.author.name][purpose]
+
+	difference = time.time() - old_time
+
+	if difference >= length:
+		users[ctx.author.name][purpose] = time.time()
+		
+		with open('user.json', 'w') as f:
+			json.dump(users, f, indent=4)
+
+		return False
+
+	else:
+		string = ''
+		time_left = length - difference
+
+		if time_left >= 86400:
+			days = time_left // 86400
+			hours = (time_left % 86400) // 3600
+			minutes = (time_left % 3600) // 60
+			string += str(int(days)) + ' days ' + str(int(hours)) + ' hr ' + str(int(minutes)) + ' min '
+
+		elif time_left >= 3600:
+			hours = time_left // 3600
+			minutes = (time_left % 3600) // 60
+			string += str(int(hours)) + ' hr ' + str(int(minutes)) + ' min '
+		elif time_left >= 60:
+			minutes = (time_left % 3600) // 60
+			string += str(int(minutes)) + ' min '
+		
+		seconds = (time_left % 3600) % 60
+		string += str(int(seconds)) + ' sec'
+
+		embed = discord.Embed(title='You cannot use this command yet!',
+								description=f'Please wait {string} to use this command.',
+								color=discord.Color.red())
+
+		await ctx.send('', embed=embed)
+		return True
 
 intents = discord.Intents.default()
 intents.members = True
@@ -170,7 +217,6 @@ class Economy(commands.Cog):
 	"""Different commands that pertain to the economy"""
 
 	working_gaming = False
-	working_mistake = False
 	working_cangaroo = False
 
 	canga_row = 0
@@ -179,13 +225,13 @@ class Economy(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 		self.emoji = ':moneybag:'
-		self.job_list = [Job('Simmons Gaming Industries', 250), Job('Midstake', 500), Job('Cangaroo Containment Facility', 1000)]
-		self.job_aliases = ['SMI', 'M', 'CCF']
+		self.job_list = [Job('Simmons Gaming Industries', 250), Job('Cangaroo Containment Facility', 1000)]
+		self.job_aliases = ['SMI', 'CCF']
 		self.job_names = [job.name for job in self.job_list]
 
 	@staticmethod
 	def get_working_bools():
-		return (Economy.working_gaming, Economy.working_mistake, Economy.working_cangaroo)
+		return (Economy.working_gaming, Economy.working_cangaroo)
 
 	@staticmethod
 	def remove_exclamation_point(string):
@@ -199,10 +245,6 @@ class Economy(commands.Cog):
 
 	@classmethod
 	async def gaming(self, ctx):
-		pass
-
-	@classmethod
-	async def mistake(self, ctx):
 		pass
 
 	@classmethod
@@ -283,63 +325,11 @@ class Economy(commands.Cog):
 		
 		Use:
 		`%sdaily`"""
-		with open('user.json', 'r') as f:
-			users = json.load(f)
 		
-		try:
-			old_time = users[ctx.author.name]['daily']
-
-			difference = time.time() - old_time
-
-			if difference >= 86400:
-				edit_user_milk(ctx.author.name, 1000)
-				embed = discord.Embed(title='You have received 1000 milk units!',
-									  description='Come back in 24 hours for another reward.',
-									  color=discord.Color.purple())
-
-				with open('user.json', 'r') as f:
-					refreshed_users = json.load(f)
-				
-				refreshed_users[ctx.author.name]['daily'] = time.time()
-
-				with open('user.json', 'w') as f:
-					json.dump(refreshed_users, f, indent=4)
-
-			else:
-				string = ''
-				time_left = 86400 - difference
-
-				if time_left >= 3600:
-					hours = time_left // 3600
-					minutes = (time_left % 3600) // 60
-					string += str(int(hours)) + ' hr ' + str(int(minutes)) + ' min '
-				elif time_left >= 60:
-					minutes = (time_left % 3600) // 60
-					string += str(int(minutes)) + ' min '
-				
-				seconds = (time_left % 3600) % 60
-				string += str(int(seconds)) + ' sec'
-
-				embed = discord.Embed(title='You cannot use this command yet!',
-									  description=f'Please wait {string} to use this command.',
-									  color=discord.Color.red())
-		
-		except KeyError:
-			add_user_to_milk(ctx.author.name)
+		if not await is_on_cooldown(ctx, 86400, 'daily'):
 			edit_user_milk(ctx.author.name, 1000)
-			embed = discord.Embed(title='You have received 1000 milk units!',
-									description='Come back in 24 hours for another reward.',
-									color=discord.Color.purple())
-
-			with open('user.json', 'r') as f:
-				refreshed_users = json.load(f)
-			
-			refreshed_users[ctx.author.name]['daily'] = time.time()
-
-			with open('user.json', 'w') as f:
-				json.dump(refreshed_users, f, indent=4)
-		
-		await ctx.send('', embed=embed)
+			embed = discord.Embed(title='You have received 1000 milk units!', description='Come back in 24 hours for another reward.', color=discord.Color.purple())
+			await ctx.send('', embed=embed)
 
 	@commands.command()
 	async def work(self, ctx, *args):
@@ -381,19 +371,11 @@ class Economy(commands.Cog):
 				await ctx.send('', embed=embed)
 		
 		else:
-			last_work_time = users[ctx.author.name]['work_cd']
-			difference = time.time() - last_work_time
-
-			if difference >= 3600:
-				users[ctx.author.name]['work_cd'] = time.time()
-
+			if not await is_on_cooldown(ctx, 3600, 'work_cd'):
 				job = users[ctx.author.name]['job']
 				
 				if job == 'Simmons Gaming Industries':
-					await self.gaming(ctx)
-
-				elif job == 'Midstake':
-					await self.mistake(ctx)
+					pass
 
 				elif job == 'Cangaroo Containment Facility':
 					emojis = [':llama:', ':dromedary_camel:', ':giraffe:', ':racehorse:', ':dog2:', ':ox:']
@@ -433,24 +415,6 @@ class Economy(commands.Cog):
 				else:
 					embed = discord.Embed(title='You dont\'t have a job yet.', description='Use `.work list` to see a list of jobs.', color=discord.Color.red())
 					await ctx.send('', embed=embed)
-					users[ctx.author.name]['work_cd'] = 0.0
-
-				with open('user.json', 'w') as f:
-					json.dump(users, f, indent=4)
-
-			else:
-				cd_str = ''
-				time_left = 3600 - difference
-
-				if time_left > 60:
-					minutes = int(time_left // 60)
-					cd_str += str(minutes) + 'min '
-				
-				seconds = int(time_left % 60)
-				cd_str += str(seconds) + 'sec'
-
-				embed = discord.Embed(title='This command is on cooldown.', description=f'You can work again in {cd_str}.')
-				await ctx.send('', embed=embed)
 
 class Gambling(commands.Cog):
 	"""Commands for gambling your milk"""
@@ -655,7 +619,7 @@ async def on_message(ctx):
 	if bot.user.mentioned_in(ctx):
 		await ctx.channel.send(f'My prefix is `{get_prefix(None, ctx)}`')
 
-	if Economy.get_working_bools()[2] == True:
+	if Economy.get_working_bools()[1] == True:
 		await Economy.cangaroo(ctx)
 
 	await bot.process_commands(ctx)
