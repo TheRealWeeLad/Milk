@@ -203,3 +203,7 @@ class Economy(commands.Cog):
 				else:
 					embed = discord.Embed(title='You dont\'t have a job yet.', description='Use `.work list` to see a list of jobs.', color=discord.Color.red())
 					await ctx.send('', embed=embed)
+
+					users[ctx.author.name]['work_cd'] = 0.0
+					with open('user.json', 'w') as f:
+						json.dump(users, f, indent=4)
