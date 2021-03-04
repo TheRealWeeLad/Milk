@@ -216,22 +216,12 @@ class Utilities(commands.Cog):
 class Economy(commands.Cog):
 	"""Different commands that pertain to the economy"""
 
-	working_gaming = False
-	working_cangaroo = False
-
-	canga_row = 0
-	canga_column = 0
-
 	def __init__(self, bot):
 		self.bot = bot
 		self.emoji = ':moneybag:'
 		self.job_list = [Job('Simmons Gaming Industries', 250), Job('Cangaroo Containment Facility', 1000)]
-		self.job_aliases = ['SMI', 'CCF']
+		self.job_aliases = ['SGI', 'CCF']
 		self.job_names = [job.name for job in self.job_list]
-
-	@staticmethod
-	def get_working_bools():
-		return (Economy.working_gaming, Economy.working_cangaroo)
 
 	@staticmethod
 	def remove_exclamation_point(string):
@@ -242,22 +232,6 @@ class Economy(commands.Cog):
 			new_str += char
 		
 		return new_str
-
-	@classmethod
-	async def gaming(self, ctx):
-		pass
-
-	@classmethod
-	async def cangaroo(self, message):
-		if message.content == str(Economy.canga_row) + ' ' + str(Economy.canga_column):
-			embed = discord.Embed(title='Good job! You caught the Cangaroo before it could escape. You have received 1000mu', color=discord.Color.green())
-			edit_user_milk(message.author.name, 1000)
-		else:
-			embed = discord.Embed(title='Too bad! You couldn\'t catch the Cangaroo before it escaped. Try again next time.')
-
-		await message.channel.send('', embed=embed)
-
-		Economy.working_cangaroo = False
 
 	@commands.command()
 	async def leaderboard(self, ctx):
@@ -392,7 +366,8 @@ class Economy(commands.Cog):
 					canga_column = random.randint(0, 4)
 
 					grid[canga_column][canga_row] = ':kangaroo:'
-					Economy.canga_row, Economy.canga_column = canga_row + 1, canga_column + 1
+					canga_row += 1
+					canga_column += 1
 
 					grid_str = ''
 
@@ -408,9 +383,26 @@ class Economy(commands.Cog):
 
 					await grid_msg.delete()
 					instructions_embed = discord.Embed(title='Type which row and column the Cangaroo was last spotted separated by spaces.', color=discord.Color.purple())
-					await ctx.send('', embed=instructions_embed)
+					instructions_msg = await ctx.send('', embed=instructions_embed)
 
-					Economy.working_cangaroo = True
+					def check(message, author):
+						return message.author == author
+
+					try:
+						msg = await bot.wait_for('message', check=lambda m: check(m, ctx.author), timeout=3)
+					
+					except asyncio.TimeoutError:
+						embed = discord.Embed(title='Too late!', description='The Cangaroo escaped before you could catch it. Try again next time.', color=discord.Color.red())
+						await instructions_msg.edit(embed=embed)
+
+					else:
+						if msg.content == str(canga_row) + ' ' + str(canga_column):
+							embed = discord.Embed(title='Good job! You caught the Cangaroo before it could escape. You have received 250mu', color=discord.Color.green())
+							edit_user_milk(msg.author.name, 250)
+						else:
+							embed = discord.Embed(title='Too bad! You couldn\'t catch the Cangaroo before it escaped. Try again next time.', color=discord.Color.red())
+
+						await ctx.send('', embed=embed)
 				
 				else:
 					embed = discord.Embed(title='You dont\'t have a job yet.', description='Use `.work list` to see a list of jobs.', color=discord.Color.red())
@@ -618,9 +610,6 @@ async def on_message(ctx):
 	
 	if bot.user.mentioned_in(ctx):
 		await ctx.channel.send(f'My prefix is `{get_prefix(None, ctx)}`')
-
-	if Economy.get_working_bools()[1] == True:
-		await Economy.cangaroo(ctx)
 
 	await bot.process_commands(ctx)
 
