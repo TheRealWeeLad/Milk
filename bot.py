@@ -72,6 +72,8 @@ intents.members = True
 bot = commands.Bot(command_prefix=get_prefix, intents=intents)
 bot.remove_command('help')
 
+bot_prefix = '.'
+
 
 class Job:
 	def __init__(self, name, salary):
@@ -91,22 +93,22 @@ class Utilities(commands.Cog):
 		Displays help message
 		
 		Use:
-		`.help [command]`"""
+		`%shelp [command]`"""
 		if not command:
 			halp=discord.Embed(title='Command Listing',
-							description='Use `.help [command]` to find out more about them!',
+							description=f'Use `{bot_prefix}help [command]` to find out more about them!',
 							color=discord.Color.blue())
 			for x in self.bot.cogs:
 				cog = self.bot.cogs[x]
 				cmds_str = ''
 				for cmd in cog.get_commands():
-					cmds_str += f'`.{cmd}` '
+					cmds_str += f'`{bot_prefix}{cmd}` '
 				halp.add_field(name=cog.emoji + x, value=cmds_str, inline=False)
 
 			cmds_desc = ''
 			for y in self.bot.commands:
 				if not y.cog_name and not y.hidden:
-					cmds_desc += ('{} - {}'.format(y.name.title(), y.help)+'\n')
+					cmds_desc += ('{} - {}'.format(y.name.title(), y.help.format(bot_prefix))+'\n')
 			if len(cmds_desc) > 0:
 				halp.add_field(name='Uncategorized Commands',value=cmds_desc[0:len(cmds_desc)-1],inline=False)
 			await ctx.send('',embed=halp)
@@ -120,8 +122,7 @@ class Utilities(commands.Cog):
 					cog = self.bot.cogs[x]
 					for y in cog.walk_commands():
 						if command[0].lower() == y.name:
-							halp = discord.Embed(title='gg')
-							halp = discord.Embed(title=y.name.title() + ' Description', description=y.help, color=discord.Color.blue())
+							halp = discord.Embed(title=y.name.title() + ' Description', description=y.help % bot_prefix, color=discord.Color.blue())
 
 							found = True
 				if not found:
@@ -135,7 +136,7 @@ class Utilities(commands.Cog):
 		Change the Bot's Prefix
 		
 		Use:
-		`.prefix {new_prefix}`"""
+		`%sprefix {new_prefix}`"""
 		# Check validity
 		if len(new_prefix) == 1 and not new_prefix.isalpha():
 			with open('prefix.json', 'r') as f:
@@ -158,7 +159,7 @@ class Utilities(commands.Cog):
 		Get the bot's ping
 		
 		Use:
-		`.ping`"""
+		`%sping`"""
 		ping = ctx.message
 		pong = await ctx.send('Ping is')
 		delta = pong.created_at - ping.created_at
@@ -222,7 +223,7 @@ class Economy(commands.Cog):
 		Check the users with the top 5 milk amounts
 		
 		Use:
-		`.leaderboard`"""
+		`%sleaderboard`"""
 		with open('user.json', 'r') as f:
 			users = json.load(f)
 		
@@ -246,7 +247,7 @@ class Economy(commands.Cog):
 		Check the amount of milk that you have acquired
 		
 		Use:
-		`.balance [account_to_check]`"""
+		`%sbalance [account_to_check]`"""
 
 		account_member = None
 		if account:
@@ -269,7 +270,7 @@ class Economy(commands.Cog):
 		except KeyError:
 			add_user_to_milk(account_name)
 
-			with open('milk.json', 'w') as f:
+			with open('user.json', 'w') as f:
 				json.dump(users, f, indent=4)
 			
 			bal = discord.Embed(title=f'{account_name}\'s Balance', description='0 milk units', color=discord.Color.green())
@@ -281,7 +282,7 @@ class Economy(commands.Cog):
 		Claim a 1000 milk unit reward every day!
 		
 		Use:
-		`.daily`"""
+		`%sdaily`"""
 		with open('user.json', 'r') as f:
 			users = json.load(f)
 		
@@ -346,7 +347,7 @@ class Economy(commands.Cog):
 		Work at your job or choose a new job.
 		
 		Use:
-		`.work [job | list]`"""
+		`%swork [job | list]`"""
 
 		with open('user.json', 'r') as f:
 			users = json.load(f)
@@ -358,7 +359,7 @@ class Economy(commands.Cog):
 			if args[0] == 'list':
 				jobs = '\n\n'.join([job.name + ' - ' + str(job.salary) + f'mu\n({self.job_aliases[self.job_list.index(job)]})' for job in self.job_list])
 
-				embed = discord.Embed(title='Use `.work [job]` to choose a job.', description=jobs, color=discord.Color.green())
+				embed = discord.Embed(title=f'Use `{bot_prefix}work [job]` to choose a job.', description=jobs, color=discord.Color.green())
 				await ctx.send('', embed=embed)
 				return
 			
@@ -385,9 +386,6 @@ class Economy(commands.Cog):
 
 			if difference >= 3600:
 				users[ctx.author.name]['work_cd'] = time.time()
-
-				with open('user.json', 'w') as f:
-					json.dump(users, f, indent=4)
 
 				job = users[ctx.author.name]['job']
 				
@@ -432,6 +430,14 @@ class Economy(commands.Cog):
 
 					Economy.working_cangaroo = True
 				
+				else:
+					embed = discord.Embed(title='You dont\'t have a job yet.', description='Use `.work list` to see a list of jobs.', color=discord.Color.red())
+					await ctx.send('', embed=embed)
+					users[ctx.author.name]['work_cd'] = 0.0
+
+				with open('user.json', 'w') as f:
+					json.dump(users, f, indent=4)
+
 			else:
 				cd_str = ''
 				time_left = 3600 - difference
@@ -480,7 +486,7 @@ class Gambling(commands.Cog):
 		Bet your milk on a coinflip
 		
 		Use:
-		`.coinflip {amount_to_bet} {heads_or_tails}`"""
+		`%scoinflip {amount_to_bet} {heads_or_tails}`"""
 		bet = await pre_gambling(ctx, amount_to_bet)
 		if bet is None:
 			return
@@ -516,7 +522,7 @@ class Gambling(commands.Cog):
 		   Bet your milk to play Blackjack
 
 		   Use:
-		   `.blackjack {amount_to_bet}`"""
+		   `%sblackjack {amount_to_bet}`"""
 		bet = await pre_gambling(ctx, amount_to_bet)
 		if bet is None:
 			return
@@ -640,6 +646,9 @@ bot.add_cog(Gambling(bot))
 
 @bot.event
 async def on_message(ctx):
+	global bot_prefix
+	bot_prefix = get_prefix(None, ctx)
+
 	if ctx.author.id == bot.user.id:
 		return
 	
