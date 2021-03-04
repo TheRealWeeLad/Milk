@@ -1,10 +1,9 @@
-import os, sys, math, traceback, asyncio
+import os, sys, math, traceback
 from Utilities import Utilities
 from Economy import Economy
 from Gambling import Gambling
-from Utils import *
+from Utils import (discord, json, get_prefix)
 
-import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -42,7 +41,7 @@ async def on_message(ctx):
 
 @bot.event
 async def on_ready():
-	await bot.change_presence(activity=discord.Game(name='.help'))
+	await bot.change_presence(activity=discord.Game(name=f'{bot_prefix}help'))
 	print(f'{bot.user.name} is active')
 
 @bot.event
