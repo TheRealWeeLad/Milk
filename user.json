@@ -1,8 +1,14 @@
 {
     "TheRealWeeLad": {
-        "balance": 11000.0,
-        "daily": 1614044038.153824,
-        "work_cd": 1614476604.3060553,
+        "balance": 17250.0,
+        "daily": 1614810610.239692,
+        "work_cd": 1614863395.5490263,
+        "job": "Cangaroo Containment Facility"
+    },
+    "SSGaming0629": {
+        "balance": 1000.0,
+        "daily": 1614820374.76585,
+        "work_cd": 0.0,
         "job": "Cangaroo Containment Facility"
     }
 }
