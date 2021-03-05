@@ -59,6 +59,8 @@ async def on_guild_remove(guild):
 # Unknown command
 @bot.event
 async def on_command_error(ctx, error):
+	embed = discord.Embed(title='', color=discord.Color.red())
+
 	# if command has local error handler, return
 	if hasattr(ctx.command, 'on_error'):
 		return
@@ -67,7 +69,8 @@ async def on_command_error(ctx, error):
 	error = getattr(error, 'original', error)
 
 	if isinstance(error, commands.CommandNotFound):
-		await ctx.send('Invalid Command')
+		embed.title = 'Invalid Command'
+		await ctx.send('', embed=embed)
 		return
 
 	if isinstance(error, commands.BotMissingPermissions):
@@ -77,15 +80,18 @@ async def on_command_error(ctx, error):
 		else:
 			fmt = ' and '.join(missing)
 		_message = 'I need the **{}** permission(s) to run this command.'.format(fmt)
-		await ctx.send(_message)
+		embed.title = _message
+		await ctx.send('', embed=embed)
 		return
 
 	if isinstance(error, commands.DisabledCommand):
-		await ctx.send('This command has been disabled.')
+		embed.title = 'This command has been disabled.'
+		await ctx.send('', embed=embed)
 		return
 
 	if isinstance(error, commands.CommandOnCooldown):
-		await ctx.send("This command is on cooldown, please retry in {}s.".format(math.ceil(error.retry_after)))
+		embed.title = 'This command is on cooldown, please retry in `{}s`.'.format(math.ceil(error.retry_after))
+		await ctx.send('', embed=embed)
 		return
 
 	if isinstance(error, commands.MissingPermissions):
@@ -95,11 +101,13 @@ async def on_command_error(ctx, error):
 		else:
 			fmt = ' and '.join(missing)
 		_message = 'You need the **{}** permission(s) to use this command.'.format(fmt)
-		await ctx.send(_message)
+		embed.title = _message
+		await ctx.send('', embed=embed)
 		return
 
 	if isinstance(error, commands.UserInputError):
-		await ctx.send("Invalid Arguments.")
+		embed.title = 'Invalid Arguments.'
+		await ctx.send('', embed=embed)
 		return
 
 	if isinstance(error, commands.NoPrivateMessage):
@@ -110,7 +118,8 @@ async def on_command_error(ctx, error):
 		return
 
 	if isinstance(error, commands.CheckFailure):
-		await ctx.send("You do not have permission to use this command.")
+		embed.title = 'You do not have permission to use this command.'
+		await ctx.send('', embed=embed)
 		return
 
 	# ignore all other exception types, but print them to stderr
