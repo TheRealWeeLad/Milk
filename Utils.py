@@ -6,7 +6,10 @@ def get_prefix(client, message):
 		prefixes = json.load(f)
 
 	try:
-		return prefixes[str(message.guild.id)]
+		if message.channel.type != discord.ChannelType.private:
+			return prefixes[str(message.guild.id)]
+		else:
+			return '.'
 	except KeyError:
 		return '.'
 
