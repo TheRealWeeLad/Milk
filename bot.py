@@ -1,4 +1,5 @@
 import os, sys, math, traceback
+sys.path.insert(1, os.path.join(sys.path[0], 'cogs'))
 from Utilities import Utilities
 from Economy import Economy
 from Gambling import Gambling
