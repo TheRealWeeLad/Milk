@@ -50,7 +50,7 @@ class Economy(commands.Cog):
 			return msg.author == ctx.author and msg.content.upper() in [key_chars, ''.join(key_chars.split())]
 
 		try:
-			msg = await self.bot.wait_for('message', check=check, timeout=10)
+			await self.bot.wait_for('message', check=check, timeout=10)
 		
 		except asyncio.TimeoutError:
 			embed = discord.Embed(title='You were too slow!', description='You died to XX_N00B_K1LL3R_69420_XX\'s no scope. Unfortunate.', color=discord.Color.red())
