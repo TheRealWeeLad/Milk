@@ -15,9 +15,15 @@ class Economy(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 		self.emoji = ':moneybag:'
-		self.job_list = [Job('Simmons Gaming Industries', 250), Job('Cangaroo Containment Facility', 1000)]
-		self.job_aliases = ['SGI', 'CCF']
+		self.job_list = [Job('Simmons Gaming Industries', 500), Job('Kangaroo Containment Facility', 1000)]
+		self.job_aliases = ['SGI', 'KCF']
+		self.job_aliases_lower = ['sgi', 'kcf']
 		self.job_names = [job.name for job in self.job_list]
+		self.job_names_lower = [job.name.lower() for job in self.job_list]
+		self.keyboard = ['!', '#', '*', '?']
+		self.keyboard.extend(letter for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+		self.keyboard_emojis = [':exclamation:', ':hash:', ':asterisk:', ':question:']
+		self.keyboard_emojis.extend([f':regional_indicator_{letter}:' for letter in 'abcdefghijklmnopqrstuvwxyz'])
 
 	@staticmethod
 	def remove_exclamation_point(string):
@@ -28,6 +34,86 @@ class Economy(commands.Cog):
 			new_str += char
 		
 		return new_str
+
+	async def gaming(self, ctx):
+		keys_length = random.randint(3, 7)
+		idxs = [random.randint(0, 29) for i in range(keys_length)]
+		key_emojis = ' '.join([self.keyboard_emojis[idxs[i]] for i in range(keys_length)])
+		key_chars = ' '.join([self.keyboard[idxs[i]] for i in range(keys_length)])
+
+		instructions_embed = discord.Embed(title='XX_N00B_K1LL3R_69420_XX is about to 360 No Scope you!', 
+										   color=discord.Color.blurple())
+		instructions_embed.add_field(name='Type the following sequence of keys to dodge his snipe.', value=key_emojis)
+		await ctx.send('', embed=instructions_embed)
+
+		def check(msg):
+			return msg.author == ctx.author and msg.content.upper() in [key_chars, ''.join(key_chars.split())]
+
+		try:
+			msg = await self.bot.wait_for('message', check=check, timeout=10)
+		
+		except asyncio.TimeoutError:
+			embed = discord.Embed(title='You were too slow!', description='You died to XX_N00B_K1LL3R_69420_XX\'s no scope. Unfortunate.', color=discord.Color.red())
+			await ctx.send('', embed=embed)
+			return
+		
+		edit_user_milk(ctx.author.name, self.job_list[0].salary)
+
+		win_embed = discord.Embed(title='You correctly input the keys! gj', description=f'XX_N00B_K1LL3R_69420_XX stood no chance against your unparalleled dodging skills. You gained {self.job_list[0].salary}mu.', color=discord.Color.green())
+		await ctx.send('', embed=win_embed)
+
+	async def kangaroo(self, ctx):
+		emojis = [':llama:', ':dromedary_camel:', ':giraffe:', ':racehorse:', ':dog2:', ':ox:']
+		grid = [[], [], [], [], []]
+		grid_index = 0
+
+		for i in range(25):
+			if i % 5 == 0 and i != 0:
+				grid_index += 1
+			
+			grid[grid_index].append(random.choice(emojis))
+
+		canga_row = random.randint(0, 4)
+		canga_column = random.randint(0, 4)
+
+		grid[canga_column][canga_row] = ':kangaroo:'
+		canga_row += 1
+		canga_column += 1
+
+		grid_str = ''
+
+		for i in range(5):
+			for j in range(5):
+				grid_str += grid[i][j]
+			grid_str += '\n'
+
+		grid_embed = discord.Embed(title='The Kangaroo has escaped! Memorize the Kangaroo\'s location.', description=grid_str, color=discord.Color.purple())
+		grid_msg = await ctx.send('', embed=grid_embed)
+
+		await asyncio.sleep(5)
+
+		await grid_msg.delete()
+		instructions_embed = discord.Embed(title='Type which row and column the Kangaroo was last spotted separated by spaces.', color=discord.Color.purple())
+		instructions_msg = await ctx.send('', embed=instructions_embed)
+
+		def check(message, author):
+			return message.author == author
+
+		try:
+			msg = await self.bot.wait_for('message', check=lambda m: check(m, ctx.author), timeout=3)
+		
+		except asyncio.TimeoutError:
+			embed = discord.Embed(title='Too late!', description='The Kangaroo escaped before you could catch it. Try again next time.', color=discord.Color.red())
+			await instructions_msg.edit(embed=embed)
+
+		else:
+			if msg.content == str(canga_row) + ' ' + str(canga_column):
+				embed = discord.Embed(title=f'Good job! You caught the Kangaroo before it could escape. You have received {self.job_list[1].salary}mu.', color=discord.Color.green())
+				edit_user_milk(msg.author.name, self.job_list[1].salary)
+			else:
+				embed = discord.Embed(title='Too bad! You couldn\'t catch the Kangaroo before it escaped. Try again next time.', color=discord.Color.red())
+
+			await ctx.send('', embed=embed)
 
 	@commands.command()
 	async def leaderboard(self, ctx):
@@ -125,9 +211,11 @@ class Economy(commands.Cog):
 			
 			job = ' '.join(args)
 
-			if job in self.job_names or job in self.job_aliases:
-				if job in self.job_aliases:
-					job = self.job_names[self.job_aliases.index(job)]
+			if job.lower() in self.job_names_lower or job.lower() in self.job_aliases_lower:
+				if job.lower() in self.job_aliases_lower:
+					job = self.job_names[self.job_aliases.index(job.upper())]
+				else:
+					job = self.job_names[self.job_names_lower.index(job.lower())]
 
 				users[ctx.author.name]['job'] = job
 				with open('user.json', 'w') as f:
@@ -145,60 +233,10 @@ class Economy(commands.Cog):
 				job = users[ctx.author.name]['job']
 				
 				if job == 'Simmons Gaming Industries':
-					pass
+					await self.gaming(ctx)
 
-				elif job == 'Cangaroo Containment Facility':
-					emojis = [':llama:', ':dromedary_camel:', ':giraffe:', ':racehorse:', ':dog2:', ':ox:']
-					grid = [[], [], [], [], []]
-					grid_index = 0
-
-					for i in range(25):
-						if i % 5 == 0 and i != 0:
-							grid_index += 1
-						
-						grid[grid_index].append(random.choice(emojis))
-
-					canga_row = random.randint(0, 4)
-					canga_column = random.randint(0, 4)
-
-					grid[canga_column][canga_row] = ':kangaroo:'
-					canga_row += 1
-					canga_column += 1
-
-					grid_str = ''
-
-					for i in range(5):
-						for j in range(5):
-							grid_str += grid[i][j]
-						grid_str += '\n'
-
-					grid_embed = discord.Embed(title='The Cangaroo has escaped! Memorize the Cangaroo\'s location.', description=grid_str, color=discord.Color.purple())
-					grid_msg = await ctx.send('', embed=grid_embed)
-
-					await asyncio.sleep(5)
-
-					await grid_msg.delete()
-					instructions_embed = discord.Embed(title='Type which row and column the Cangaroo was last spotted separated by spaces.', color=discord.Color.purple())
-					instructions_msg = await ctx.send('', embed=instructions_embed)
-
-					def check(message, author):
-						return message.author == author
-
-					try:
-						msg = await self.bot.wait_for('message', check=lambda m: check(m, ctx.author), timeout=3)
-					
-					except asyncio.TimeoutError:
-						embed = discord.Embed(title='Too late!', description='The Cangaroo escaped before you could catch it. Try again next time.', color=discord.Color.red())
-						await instructions_msg.edit(embed=embed)
-
-					else:
-						if msg.content == str(canga_row) + ' ' + str(canga_column):
-							embed = discord.Embed(title='Good job! You caught the Cangaroo before it could escape. You have received 250mu', color=discord.Color.green())
-							edit_user_milk(msg.author.name, 250)
-						else:
-							embed = discord.Embed(title='Too bad! You couldn\'t catch the Cangaroo before it escaped. Try again next time.', color=discord.Color.red())
-
-						await ctx.send('', embed=embed)
+				elif job == 'Kangaroo Containment Facility':
+					await self.kangaroo(ctx)
 				
 				else:
 					embed = discord.Embed(title='You dont\'t have a job yet.', description='Use `.work list` to see a list of jobs.', color=discord.Color.red())
