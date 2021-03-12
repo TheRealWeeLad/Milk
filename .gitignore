@@ -1,5 +1,6 @@
 .env
 .vscode/settings.json
 test.py
-__pycache__
-cogs/__pycache__
+
+# Ignore pycache
+*.pyc
