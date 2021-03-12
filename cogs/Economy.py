@@ -29,9 +29,8 @@ class Economy(commands.Cog):
 	def remove_exclamation_point(string):
 		new_str = ''
 		for char in string:
-			if char == '!':
-				continue
-			new_str += char
+			if char != '!':
+				new_str += char
 		
 		return new_str
 
@@ -73,12 +72,10 @@ class Economy(commands.Cog):
 			
 			grid[grid_index].append(random.choice(emojis))
 
-		canga_row = random.randint(0, 4)
-		canga_column = random.randint(0, 4)
+		canga_row = random.randint(1, 5)
+		canga_column = random.randint(1, 5)
 
-		grid[canga_column][canga_row] = ':kangaroo:'
-		canga_row += 1
-		canga_column += 1
+		grid[canga_column - 1][canga_row - 1] = ':kangaroo:'
 
 		grid_str = ''
 
@@ -96,11 +93,11 @@ class Economy(commands.Cog):
 		instructions_embed = discord.Embed(title='Type which row and column the Kangaroo was last spotted separated by spaces.', color=discord.Color.purple())
 		instructions_msg = await ctx.send('', embed=instructions_embed)
 
-		def check(message, author):
-			return message.author == author
+		def check(message):
+			return message.author == ctx.author
 
 		try:
-			msg = await self.bot.wait_for('message', check=lambda m: check(m, ctx.author), timeout=3)
+			msg = await self.bot.wait_for('message', check=check, timeout=3)
 		
 		except asyncio.TimeoutError:
 			embed = discord.Embed(title='Too late!', description='The Kangaroo escaped before you could catch it. Try again next time.', color=discord.Color.red())
@@ -136,7 +133,7 @@ class Economy(commands.Cog):
 			i = map(str, i)
 			desc += ' - '.join(i) + '\n'
 
-		message = discord.Embed(title='Top 5 Milk Owners', description=desc, color=0xffff00)
+		message = discord.Embed(title='Top 5 Milk Owners', description=desc, color=discord.Color.yellow())
 		await ctx.send('', embed=message)
 
 	@commands.command(name='balance')
@@ -152,7 +149,8 @@ class Economy(commands.Cog):
 			account_id = int(account[0][3:-1]) if '!' in account[0] else int(account[0][2:-1])
 			account_member = ctx.guild.get_member(account_id)
 			if account_member is None:
-				await ctx.send('User not found')
+				notfound_embed = discord.Embed(title='Error!', description='User not found!', color=discord.Color.red())
+				await ctx.send('', embed=notfound_embed)
 				return
 		else:
 			account_member = ctx.author
@@ -163,8 +161,8 @@ class Economy(commands.Cog):
 			users = json.load(f)
 		
 		try:
-			bal = discord.Embed(title=f'{account_name}\'s Balance', description=f'{str(users[account_name]["balance"])} milk units', color=discord.Color.green())
-			await ctx.send('', embed=bal)
+			bal_embed = discord.Embed(title=f'{account_name}\'s Balance', description=f'{str(users[account_name]["balance"])} milk units', color=discord.Color.green())
+			await ctx.send('', embed=bal_embed)
 		except KeyError:
 			add_user_to_milk(account_name)
 
