@@ -1,6 +1,21 @@
 import discord, json
 from discord.ext import commands
-from Utils import (random, asyncio, add_user_to_milk, edit_user_milk, is_on_cooldown)
+from Utils import (random, asyncio, add_user_to_milk, edit_user_milk, is_on_cooldown, int_to_str)
+from itemfuncs import functions
+
+class Item:
+	def __init__(self, name: str, description: str, emoji: str, cost: int, function):
+		self.name = name
+		self.description = description
+		self.emoji = emoji
+		self.cost = cost
+		self.use = function
+	
+	def __str__(self):
+		return self.name
+	
+	def __ge__(self, comparator):
+		return self.cost >= comparator
 
 class Job:
 	def __init__(self, name, salary):
@@ -24,6 +39,10 @@ class Economy(commands.Cog):
 		self.keyboard.extend(letter for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
 		self.keyboard_emojis = [':exclamation:', ':hash:', ':asterisk:', ':question:']
 		self.keyboard_emojis.extend([f':regional_indicator_{letter}:' for letter in 'abcdefghijklmnopqrstuvwxyz'])
+
+		cookie = Item('Cookie', 'Does nothing', ':cookie:', 5, lambda: None)
+		milk = Item('Milk Carton', 'Negates command cooldowns', '<:carton:826231831757717516>', 999999, functions[0])
+		self.items = [cookie, milk]
 
 	@staticmethod
 	def remove_exclamation_point(string):
@@ -198,6 +217,8 @@ class Economy(commands.Cog):
 
 		if ctx.author.name not in users:
 			add_user_to_milk(ctx.author.name)
+			with open('user.json', 'r') as f:
+				users = json.load(f)
 		
 		if args:
 			if args[0] == 'list':
@@ -243,3 +264,25 @@ class Economy(commands.Cog):
 					users[ctx.author.name]['work_cd'] = 0.0
 					with open('user.json', 'w') as f:
 						json.dump(users, f, indent=4)
+
+	@commands.command()
+	async def shop(self, ctx, *item):
+		'''Description:
+		Bring up a shop menu to buy items or display an item\'s details.
+		Use:
+		`%sshop [item]`'''
+		if item:
+			if len(item) > 1:
+				embed = discord.Embed(title='Too many items listed!', color=discord.Color.red())
+				await ctx.send('', embed=embed)
+
+		else:
+			shop_embed = discord.Embed(title='Shop', description='\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_', color=discord.Color.purple())
+
+			for shopitem in self.items:
+				cost = int_to_str(shopitem.cost)
+				shop_embed.add_field(name=f'{shopitem.emoji} {shopitem.name} - {cost}mu', 
+					value=shopitem.description, 
+					inline=False)
+			
+			await ctx.send('', embed=shop_embed)
