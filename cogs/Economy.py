@@ -277,7 +277,9 @@ class Economy(commands.Cog):
     			item_idx = list(map(str, self.items)).index(item.lower())
     			it = items[item_idx]
 
-				details_embed = discord.Embed(title=f'{it.emoji} {it.name} - {it.cost}', description=it.detailed_description)
+				cost = int_to_str(it.cost)
+
+				details_embed = discord.Embed(title=f'{it.emoji} {it.name} - {cost}mu', description=it.detailed_description)
 				await ctx.send('', embed=details_embed)
     
 			else:
