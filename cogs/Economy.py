@@ -4,9 +4,10 @@ from Utils import (random, asyncio, add_user_to_milk, edit_user_milk, is_on_cool
 from itemfuncs import functions
 
 class Item:
-	def __init__(self, name: str, description: str, emoji: str, cost: int, function):
+	def __init__(self, name: str, description: str, detailed_description: str, emoji: str, cost: int, function):
 		self.name = name
 		self.description = description
+		self.detailed_description = detailed_description
 		self.emoji = emoji
 		self.cost = cost
 		self.use = function
@@ -40,8 +41,8 @@ class Economy(commands.Cog):
 		self.keyboard_emojis = [':exclamation:', ':hash:', ':asterisk:', ':question:']
 		self.keyboard_emojis.extend([f':regional_indicator_{letter}:' for letter in 'abcdefghijklmnopqrstuvwxyz'])
 
-		cookie = Item('Cookie', 'Does nothing', ':cookie:', 5, lambda: None)
-		milk = Item('Milk Carton', 'Negates command cooldowns', '<:carton:826231831757717516>', 999999, functions[0])
+		cookie = Item('Cookie', 'Does nothing', 'Does literally nothing', ':cookie:', 5, lambda: None)
+		milk = Item('Milk Carton', 'Negates command cooldowns', 'Drinking this will allow you to use commands as much as you like without provoking a cooldown.', '<:carton:826231831757717516>', 999999, functions[0])
 		self.items = [milk, cookie]
 
 	@staticmethod
@@ -276,7 +277,7 @@ class Economy(commands.Cog):
     			item_idx = list(map(str, self.items)).index(item.lower())
     			it = items[item_idx]
 
-				details_embed = discord.Embed(title=f'{it.emoji} {it.name} - {it.cost}', description=it.description)
+				details_embed = discord.Embed(title=f'{it.emoji} {it.name} - {it.cost}', description=it.detailed_description)
 				await ctx.send('', embed=details_embed)
     
 			else:
