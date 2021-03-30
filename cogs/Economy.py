@@ -42,7 +42,7 @@ class Economy(commands.Cog):
 
 		cookie = Item('Cookie', 'Does nothing', ':cookie:', 5, lambda: None)
 		milk = Item('Milk Carton', 'Negates command cooldowns', '<:carton:826231831757717516>', 999999, functions[0])
-		self.items = [cookie, milk]
+		self.items = [milk, cookie]
 
 	@staticmethod
 	def remove_exclamation_point(string):
@@ -272,8 +272,15 @@ class Economy(commands.Cog):
 		Use:
 		`%sshop [item]`'''
 		if item:
-			if len(item) > 1:
-				embed = discord.Embed(title='Too many items listed!', color=discord.Color.red())
+			if item.lower() in map(str, self.items):
+    			item_idx = list(map(str, self.items)).index(item.lower())
+    			it = items[item_idx]
+
+				details_embed = discord.Embed(title=f'{it.emoji} {it.name} - {it.cost}', description=it.description)
+				await ctx.send('', embed=details_embed)
+    
+			else:
+				embed = discord.Embed(title='Error!', description='Couldn\'t find this item', color=discord.Color.red())
 				await ctx.send('', embed=embed)
 
 		else:
