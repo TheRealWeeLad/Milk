@@ -1,8 +1,16 @@
+# Bot Token
 .env
+
+# Irrelevant Settings
 .vscode/settings.json
+
+# Testing File
 test.py
 
-# Ignore pycache
+# User/Guild Details
+*.json
+
+# pycache
 *.pyc
 
 # Pylint
