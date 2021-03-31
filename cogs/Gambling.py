@@ -32,13 +32,15 @@ class Gambling(commands.Cog):
 		
 		return numsum
 
-	@commands.command(name='coinflip')
+	@commands.command(name='coinflip', aliases=['cf'])
 	async def coin_flip(self, ctx, amount_to_bet, heads_or_tails):
 		"""Description:
 		Bet your milk on a coinflip
 		
 		Use:
-		`%scoinflip {amount_to_bet} {heads_or_tails}`"""
+		`%scoinflip {amount_to_bet} {heads_or_tails}`
+		Aliases:
+		`cf`"""
 		bet = await pre_gambling(ctx, amount_to_bet)
 		if bet is None:
 			return
@@ -67,14 +69,16 @@ class Gambling(commands.Cog):
 									color=discord.Color.red())
 			await flipping_msg.edit(embed=message)
 
-	@commands.command()
+	@commands.command(aliases=['bj'])
 	@commands.cooldown(5, 3)
 	async def blackjack(self, ctx, amount_to_bet):
 		"""Description:
 		   Bet your milk to play Blackjack
 
 		   Use:
-		   `%sblackjack {amount_to_bet}`"""
+		   `%sblackjack {amount_to_bet}`
+		   Aliases:
+		   `bj`"""
 		bet = await pre_gambling(ctx, amount_to_bet)
 		if bet is None:
 			return
