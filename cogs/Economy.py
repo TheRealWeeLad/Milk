@@ -44,7 +44,7 @@ class Economy(commands.Cog):
 		cookie = Item('Cookie', 'Does nothing', 'Does literally nothing', ':cookie:', 5, lambda: None)
 		milk = Item('Milk Carton', 'Negates command cooldowns', 'Drinking this will allow you to use commands as much as you like without provoking a cooldown.', '<:carton:826231831757717516>', 999999, functions[0])
 		self.items = [milk, cookie]
-		self.item_strs = list(map(str, self.items))
+		self.item_strs = list(map(str.lower, list(map(str, self.items))))
 
 	@staticmethod
 	def remove_exclamation_point(string):
@@ -295,9 +295,11 @@ class Economy(commands.Cog):
 			await ctx.send('', embed=embed)
 			return
 
-		if item.lower() in item_strs:
-			item_idx = item_strs.index(item.lower())
-			it = items[item_idx]
+		item = ' '.join(item)
+
+		if item.lower() in self.item_strs:
+			item_idx = self.item_strs.index(item.lower())
+			it = self.items[item_idx]
 
 			cost = int_to_str(it.cost)
 
@@ -320,8 +322,10 @@ class Economy(commands.Cog):
 			await ctx.send('', embed=embed)
 			return
 		
-		if item.lower() in item_strs:
-			item_idx = item_strs.index(item.lower())
+		item = ' '.join(item)
+
+		if item.lower() in self.item_strs:
+			item_idx = self.item_strs.index(item.lower())
 			it = self.items[item_idx]
 
 			with open('user.json', 'r') as f:
@@ -339,16 +343,17 @@ class Economy(commands.Cog):
 				bought_embed = discord.Embed(title=f'You have bought {article} {it.name}', color=discord.Color.green())
 				await ctx.send('', embed=bought_embed)
 				
-				if it in users[ctx.author.name]['items']:
-					users[ctx.author.name]['items'][it] += 1
+				if it.name in users[ctx.author.name]['items']:
+					users[ctx.author.name]['items'][it.name] += 1
 				else:
-					users[ctx.author.name]['items'][it] = 0
+					users[ctx.author.name]['items'][it.name] = 1
 				
 				with open('user.json', 'w') as f:
 					json.dump(users, f, indent=4)
 			
 			else:
 				embed = discord.Embed(title='You do not have enough milk units to buy this item.', color=discord.Color.red())
+				await ctx.send('', embed=embed)
 
 		else:
 			embed = discord.Embed(title='Error!', description='Item not found', color=discord.Color.red())
@@ -371,8 +376,8 @@ class Economy(commands.Cog):
 			with open('user.json', 'r') as f:
 				users = json.load(f)
 
-		for item, amount in enumerate(users[ctx.author.name]['items']):
-			it = self.items[self.item_strs.index(item)]
+		for item, amount in users[ctx.author.name]['items'].items():
+			it = self.items[self.item_strs.index(item.lower())]
 			inv_embed.add_field(name=f'{it.emoji} {it.name} - {amount}', value=it.description, inline=False)
 		
 		await ctx.send('', embed=inv_embed)
