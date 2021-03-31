@@ -1,6 +1,9 @@
 # Bot Token
 .env
 
+# Github Folder
+.github/
+
 # Irrelevant Settings
 .vscode/settings.json
 
