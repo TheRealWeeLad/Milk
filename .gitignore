@@ -1,6 +1,9 @@
 # Bot Token
 .env
 
+# Auto Launcher
+MilkLauncher.bat
+
 # CodeQl Workflow
 .github/workflows/codeql-analysis.yml
 
