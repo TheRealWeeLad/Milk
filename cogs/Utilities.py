@@ -10,13 +10,15 @@ class Utilities(commands.Cog):
 		self.bot = bot
 		self.emoji = ':wrench:'
 
-	@commands.command()
+	@commands.command(aliases=['commands'])
 	async def help(self, ctx, *command):
 		"""Description:
 		Displays help message
 		
 		Use:
-		`%shelp [command]`"""
+		`%shelp [command]`
+		Aliases:
+		`commands`"""
 		if not command:
 			halp=discord.Embed(title='Command Listing',
 							description=f'Use `{self.prefix}help [command]` to find out more about them!',

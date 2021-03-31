@@ -157,13 +157,15 @@ class Economy(commands.Cog):
 		message = discord.Embed(title='Top 5 Milk Owners', description=desc, color=discord.Color.yellow())
 		await ctx.send('', embed=message)
 
-	@commands.command(name='balance')
+	@commands.command(name='balance', aliases=['bal'])
 	async def check_balance(self, ctx, *account):
 		"""Description:
 		Check the amount of milk that you have acquired
 		
 		Use:
-		`%sbalance [account_to_check]`"""
+		`%sbalance [account_to_check]`
+		Aliases:
+		`bal`"""
 
 		account_member = None
 		if account:
@@ -288,7 +290,7 @@ class Economy(commands.Cog):
 		'''Description:
 		Bring up a detailed description of an item.
 		Use:
-		`%sinfo {item}'''
+		`%sinfo {item}`'''
 
 		if not item:
 			embed = discord.Embed(title='You have not specified an item.', color=discord.Color.red())
@@ -359,12 +361,14 @@ class Economy(commands.Cog):
 			embed = discord.Embed(title='Error!', description='Item not found', color=discord.Color.red())
 			await ctx.send('', embed=embed)
 
-	@commands.command()
+	@commands.command(aliases=['inv'])
 	async def inventory(self, ctx):
 		'''Description:
 		Bring up a display with all your items.
 		Use:
-		`%sinventory`'''
+		`%sinventory`
+		Aliases:
+		`inv`'''
 
 		inv_embed = discord.Embed(title=f'{ctx.author.name}\'s Inventory', description='\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_', color=discord.Color.purple())
 		
