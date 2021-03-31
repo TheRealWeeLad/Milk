@@ -15,8 +15,8 @@ class Item:
 	def __str__(self):
 		return self.name
 	
-	def __ge__(self, comparator):
-		return self.cost >= comparator
+	def __int__(self):
+		return self.cost
 
 class Job:
 	def __init__(self, name, salary):
@@ -267,32 +267,89 @@ class Economy(commands.Cog):
 						json.dump(users, f, indent=4)
 
 	@commands.command()
-	async def shop(self, ctx, *item):
+	async def shop(self, ctx):
 		'''Description:
-		Bring up a shop menu to buy items or display an item\'s details.
+		Bring up a shop menu to buy items.
 		Use:
-		`%sshop [item]`'''
-		if item:
-			if item.lower() in map(str, self.items):
-    			item_idx = list(map(str, self.items)).index(item.lower())
-    			it = items[item_idx]
+		`%sshop`'''
+		shop_embed = discord.Embed(title='Shop', description='\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_', color=discord.Color.purple())
 
-				cost = int_to_str(it.cost)
+		for shopitem in self.items:
+			cost = int_to_str(shopitem.cost)
+			shop_embed.add_field(name=f'{shopitem.emoji} {shopitem.name} - {cost}mu', 
+				value=shopitem.description, 
+				inline=False)
+		
+		await ctx.send('', embed=shop_embed)
 
-				details_embed = discord.Embed(title=f'{it.emoji} {it.name} - {cost}mu', description=it.detailed_description)
-				await ctx.send('', embed=details_embed)
-    
-			else:
-				embed = discord.Embed(title='Error!', description='Couldn\'t find this item', color=discord.Color.red())
-				await ctx.send('', embed=embed)
+	@commands.command()
+	async def info(self, ctx, *item):
+		'''Description:
+		Bring up a detailed description of an item.
+		Use:
+		`%sinfo {item}'''
+
+		if not item:
+			embed = discord.Embed(title='You have not specified an item.', color=discord.Color.red())
+			await ctx.send('', embed=embed)
+			return
+
+		if item.lower() in map(str, self.items):
+			item_idx = list(map(str, self.items)).index(item.lower())
+			it = items[item_idx]
+
+			cost = int_to_str(it.cost)
+
+			details_embed = discord.Embed(title=f'{it.emoji} {it.name} - {cost}mu', description=it.detailed_description, color=discord.Color.green())
+			await ctx.send('', embed=details_embed)
 
 		else:
-			shop_embed = discord.Embed(title='Shop', description='\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_', color=discord.Color.purple())
+			embed = discord.Embed(title='Error!', description='Couldn\'t find this item', color=discord.Color.red())
+			await ctx.send('', embed=embed)
 
-			for shopitem in self.items:
-				cost = int_to_str(shopitem.cost)
-				shop_embed.add_field(name=f'{shopitem.emoji} {shopitem.name} - {cost}mu', 
-					value=shopitem.description, 
-					inline=False)
+	@commands.command()
+	async def buy(self, ctx, *item):
+		'''Description:
+		Buy items from the shop.
+		Use:
+		`%sbuy {item}`'''
+
+		if not item:
+			embed = discord.Embed(title='You have not specified an item to buy.', color=discord.Color.red())
+			await ctx.send('', embed=embed)
+			return
+		
+		if item.lower() in map(str, self.items):
+			item_idx = list(map(str, self.items)).index(item.lower())
+			it = self.items[item_idx]
+
+			with open('user.json', 'r') as f:
+				users = json.load(f)
 			
-			await ctx.send('', embed=shop_embed)
+			if ctx.author.name not in users:
+				add_user_to_milk(ctx.author.name)
+				with open('user.json', 'r') as f:
+					users = json.load(f)
+			
+			if users[ctx.author.name]['balance'] >= it.cost:
+				edit_user_milk(ctx.author.name, -it.cost)
+
+				article = 'an' if it.name.startswith(('a', 'e', 'i', 'o', 'u')) else 'a'
+				bought_embed = discord.Embed(title=f'You have bought {article} {it.name}', color=discord.Color.green())
+				await ctx.send('', embed=bought_embed)
+				# TODO:
+				# ADD TO INVENTORY
+
+		else:
+			embed = discord.Embed(title='Error!', description='Item not found', color=discord.Color.red())
+			await ctx.send('', embed=embed)
+
+	@commands.command()
+	async def inventory(self, ctx):
+		'''Description:
+		Bring up a display with all your items.
+		Use:
+		`%sinventory`'''
+
+		inv_embed = discord.Embed(title=f'{ctx.author.name}\'s Inventory', description='\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_', color=discord.Color.purple())
+		
