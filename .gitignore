@@ -1,8 +1,8 @@
 # Bot Token
 .env
 
-# Github Folder
-.github/
+# CodeQl Workflow
+.github/workflows/codeql-analysis.yml
 
 # Irrelevant Settings
 .vscode/settings.json
