@@ -44,6 +44,7 @@ class Economy(commands.Cog):
 		cookie = Item('Cookie', 'Does nothing', 'Does literally nothing', ':cookie:', 5, lambda: None)
 		milk = Item('Milk Carton', 'Negates command cooldowns', 'Drinking this will allow you to use commands as much as you like without provoking a cooldown.', '<:carton:826231831757717516>', 999999, functions[0])
 		self.items = [milk, cookie]
+		self.item_strs = list(map(str, self.items))
 
 	@staticmethod
 	def remove_exclamation_point(string):
@@ -294,8 +295,8 @@ class Economy(commands.Cog):
 			await ctx.send('', embed=embed)
 			return
 
-		if item.lower() in map(str, self.items):
-			item_idx = list(map(str, self.items)).index(item.lower())
+		if item.lower() in item_strs:
+			item_idx = item_strs.index(item.lower())
 			it = items[item_idx]
 
 			cost = int_to_str(it.cost)
@@ -319,8 +320,8 @@ class Economy(commands.Cog):
 			await ctx.send('', embed=embed)
 			return
 		
-		if item.lower() in map(str, self.items):
-			item_idx = list(map(str, self.items)).index(item.lower())
+		if item.lower() in item_strs:
+			item_idx = item_strs.index(item.lower())
 			it = self.items[item_idx]
 
 			with open('user.json', 'r') as f:
@@ -337,8 +338,17 @@ class Economy(commands.Cog):
 				article = 'an' if it.name.startswith(('a', 'e', 'i', 'o', 'u')) else 'a'
 				bought_embed = discord.Embed(title=f'You have bought {article} {it.name}', color=discord.Color.green())
 				await ctx.send('', embed=bought_embed)
-				# TODO:
-				# ADD TO INVENTORY
+				
+				if it in users[ctx.author.name]['items']:
+					users[ctx.author.name]['items'][it] += 1
+				else:
+					users[ctx.author.name]['items'][it] = 0
+				
+				with open('user.json', 'w') as f:
+					json.dump(users, f, indent=4)
+			
+			else:
+				embed = discord.Embed(title='You do not have enough milk units to buy this item.', color=discord.Color.red())
 
 		else:
 			embed = discord.Embed(title='Error!', description='Item not found', color=discord.Color.red())
@@ -353,3 +363,16 @@ class Economy(commands.Cog):
 
 		inv_embed = discord.Embed(title=f'{ctx.author.name}\'s Inventory', description='\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_', color=discord.Color.purple())
 		
+		with open('user.json', 'r') as f:
+			users = json.load(f)
+
+		if ctx.author.name not in users:
+			add_user_to_milk(ctx.author.name)
+			with open('user.json', 'r') as f:
+				users = json.load(f)
+
+		for item, amount in enumerate(users[ctx.author.name]['items']):
+			it = self.items[self.item_strs.index(item)]
+			inv_embed.add_field(name=f'{it.emoji} {it.name} - {amount}', value=it.description, inline=False)
+		
+		await ctx.send('', embed=inv_embed)
