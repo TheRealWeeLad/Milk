@@ -151,10 +151,11 @@ class Economy(commands.Cog):
 		
 		desc = ''
 		for i in new_balances:
-			i = map(str, i)
-			desc += ' - '.join(i) + '\n'
+			bal = int_to_str(i[1])
+			new_list = [i[0], bal]
+			desc += ' - '.join(new_list) + 'mu' + '\n'
 
-		message = discord.Embed(title='Top 5 Milk Owners', description=desc, color=discord.Color.yellow())
+		message = discord.Embed(title='Top 5 Milk Owners', description=desc, color=discord.Color.gold())
 		await ctx.send('', embed=message)
 
 	@commands.command(name='balance', aliases=['bal'])
@@ -184,14 +185,11 @@ class Economy(commands.Cog):
 			users = json.load(f)
 		
 		try:
-			balance = int_to_str(users[ctx.author.name]['balance'])
+			balance = int_to_str(users[account_member.name]['balance'])
 			bal_embed = discord.Embed(title=f'{account_name}\'s Balance', description=f'{balance} milk units', color=discord.Color.green())
 			await ctx.send('', embed=bal_embed)
 		except KeyError:
 			add_user_to_milk(account_name)
-
-			with open('user.json', 'w') as f:
-				json.dump(users, f, indent=4)
 			
 			bal = discord.Embed(title=f'{account_name}\'s Balance', description='0 milk units', color=discord.Color.green())
 			await ctx.send('', embed=bal)

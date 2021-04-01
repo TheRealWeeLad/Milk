@@ -45,7 +45,7 @@ class Gambling(commands.Cog):
 		if bet is None:
 			return
 		
-		flipping = discord.Embed(title=':coin: Flipping Coin...', color=0xffff00)
+		flipping = discord.Embed(title=':coin: Flipping Coin...', color=discord.Color.gold())
 		flipping_msg = await ctx.send('', embed=flipping)
 		await asyncio.sleep(1.5)
 
@@ -71,6 +71,7 @@ class Gambling(commands.Cog):
 
 	@commands.command(aliases=['bj'])
 	@commands.cooldown(5, 3)
+	@commands.bot_has_permissions(manage_messages=True)
 	async def blackjack(self, ctx, amount_to_bet):
 		"""Description:
 		   Bet your milk to play Blackjack
