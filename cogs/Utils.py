@@ -18,9 +18,9 @@ def add_user_to_milk(user: str):
 		users = json.load(f)
 
 	if user in users:
-		users[user] = {"balance": 0.0, "daily": 0.0, "work_cd": 0.0, "job": "unemployed", "cdstate": "active", "items": {}}
+		users[user] = {"balance": 0, "daily": 0.0, "work_cd": 0.0, "job": "unemployed", "cdstate": "active", "items": {}}
 	else:
-		users[user] = {"balance": 0.0, "daily": 0.0, "work_cd": 0.0, "job": "unemployed", "cdstate": "active", "items": {}}
+		users[user] = {"balance": 0, "daily": 0.0, "work_cd": 0.0, "job": "unemployed", "cdstate": "active", "items": {}}
 
 	with open('user.json', 'w') as f:
 		json.dump(users, f, indent=4)

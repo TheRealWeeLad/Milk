@@ -41,8 +41,8 @@ class Economy(commands.Cog):
 		self.keyboard_emojis = [':exclamation:', ':hash:', ':asterisk:', ':question:']
 		self.keyboard_emojis.extend([f':regional_indicator_{letter}:' for letter in 'abcdefghijklmnopqrstuvwxyz'])
 
-		cookie = Item('Cookie', 'Does nothing', 'Does literally nothing', ':cookie:', 5, lambda: None)
-		milk = Item('Milk Carton', 'Negates command cooldowns', 'Drinking this will allow you to use commands as much as you like without provoking a cooldown.', '<:carton:826231831757717516>', 999999, functions[0])
+		cookie = Item('Cookie', 'Does nothing', 'Does literally nothing', ':cookie:', 5, functions[0])
+		milk = Item('Milk Carton', 'Negates command cooldowns', 'Drinking this will allow you to use commands as much as you like without provoking a cooldown.', '<:carton:826231831757717516>', 999999, functions[1])
 		self.items = [milk, cookie]
 		self.item_strs = list(map(str.lower, list(map(str, self.items))))
 
@@ -184,7 +184,8 @@ class Economy(commands.Cog):
 			users = json.load(f)
 		
 		try:
-			bal_embed = discord.Embed(title=f'{account_name}\'s Balance', description=f'{str(users[account_name]["balance"])} milk units', color=discord.Color.green())
+			balance = int_to_str(users[ctx.author.name]['balance'])
+			bal_embed = discord.Embed(title=f'{account_name}\'s Balance', description=f'{balance} milk units', color=discord.Color.green())
 			await ctx.send('', embed=bal_embed)
 		except KeyError:
 			add_user_to_milk(account_name)
@@ -385,3 +386,33 @@ class Economy(commands.Cog):
 			inv_embed.add_field(name=f'{it.emoji} {it.name} - {amount}', value=it.description, inline=False)
 		
 		await ctx.send('', embed=inv_embed)
+
+	@commands.command()
+	async def use(self, ctx, *item):
+		'''Description:
+		Use an item in your inventory.
+		Use:
+		`%suse {item}`'''
+
+		if not item:
+			embed = discord.Embed(title='You have not specified an item to use.', color=discord.Color.red())
+			await ctx.send('', embed=embed)
+			return
+		
+		item = ' '.join(item)
+
+		with open('user.json', 'r') as f:
+			users = json.load(f)
+
+		if item.lower() in map(str.lower, users[ctx.author.name]['items']):
+			it = self.items[self.item_strs.index(item.lower())]
+			users[ctx.author.name]['items'][it.name] -= 1
+
+			with open('user.json', 'w') as f:
+				json.dump(users, f, indent=4)
+				
+			await it.use(ctx, ctx.author.name)
+
+		else:
+			embed = discord.Embed(title='Error!', description='You don\'t have this item or the item is invalid.', color=discord.Color.red())
+			await ctx.send('', embed=embed)
