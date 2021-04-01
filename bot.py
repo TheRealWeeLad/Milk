@@ -44,7 +44,7 @@ async def on_message(ctx):
 
 @bot.event
 async def on_ready():
-	await bot.change_presence(activity=discord.Game(name=f'{bot_prefix}help'))
+	await bot.change_presence(activity=discord.Game(name='.help'))
 	print(f'{bot.user.name} is active')
 
 @bot.event
