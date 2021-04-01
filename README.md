@@ -20,6 +20,7 @@ This is a simple discord bot made in python with economy features.
 - `.info` - get detailed info on a certain item
 - `.buy` - buy an item from the shop
 - `.inventory` - display your items
+- `.use` - use an item in your inventory
 
 ## Gambling
 - `.coinflip` - bet your milk on a coinflip
