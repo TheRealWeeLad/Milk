@@ -1,6 +1,6 @@
 import discord, json
 from discord.ext import commands
-from Utils import (random, asyncio, add_user_to_milk, edit_user_milk, is_on_cooldown, int_to_str)
+from Utils import (get_users, dump_users, random, asyncio, add_user_to_milk, edit_user_milk, is_on_cooldown, int_to_str)
 from itemfuncs import functions
 
 class Item:
@@ -10,6 +10,7 @@ class Item:
 		self.detailed_description = detailed_description
 		self.emoji = emoji
 		self.cost = cost
+		self.sellCost = round(self.cost * 0.75)
 		self.use = function
 	
 	def __str__(self):
@@ -42,18 +43,20 @@ class Economy(commands.Cog):
 		self.keyboard_emojis.extend([f':regional_indicator_{letter}:' for letter in 'abcdefghijklmnopqrstuvwxyz'])
 
 		cookie = Item('Cookie', 'Does nothing', 'Does literally nothing', ':cookie:', 5, functions[0])
+		lt = Item('Lottery Ticket', 'Provides a small chance at winning big!', 'Using this item will grant you a very small change to win *100000*mu!', ':tickets:', 100, functions[3])
+		shovel = Item('Shovel', f'Grants access to the `{self.prefix}dig` command', f'This item will allow you to dig in the calcium mines using the `{self.prefix}dig` command.', '<:shovel:832020414632165406>', 5000, functions[2])
 		milk = Item('Milk Carton', 'Negates command cooldowns', 'Drinking this will allow you to use commands as much as you like without provoking a cooldown.', '<:carton:826231831757717516>', 999999, functions[1])
-		self.items = [milk, cookie]
-		self.item_strs = list(map(str.lower, list(map(str, self.items))))
+		self.items = [milk, shovel, lt, cookie]
+		self.item_strs = list(map(lambda o: str(o).lower(), self.items))
 
 	@staticmethod
 	def remove_exclamation_point(string):
-		new_str = ''
-		for char in string:
-			if char != '!':
-				new_str += char
+		l = list(string)
 		
-		return new_str
+		while '!' in l:
+			l.remove('!')
+
+		return ''.join(l)
 
 	async def gaming(self, ctx):
 		keys_length = random.randint(3, 7)
@@ -140,8 +143,7 @@ class Economy(commands.Cog):
 		
 		Use:
 		`%sleaderboard`"""
-		with open('user.json', 'r') as f:
-			users = json.load(f)
+		users = get_users()
 		
 		balance_list = {}
 		for user, val in users.items():
@@ -181,8 +183,7 @@ class Economy(commands.Cog):
 		
 		account_name = account_member.name
 		
-		with open('user.json', 'r') as f:
-			users = json.load(f)
+		users = get_users()
 		
 		try:
 			balance = int_to_str(users[account_member.name]['balance'])
@@ -215,13 +216,11 @@ class Economy(commands.Cog):
 		Use:
 		`%swork [job | list]`"""
 
-		with open('user.json', 'r') as f:
-			users = json.load(f)
+		users = get_users()
 
 		if ctx.author.name not in users:
 			add_user_to_milk(ctx.author.name)
-			with open('user.json', 'r') as f:
-				users = json.load(f)
+			users = get_users()
 		
 		if args:
 			if args[0] == 'list':
@@ -240,8 +239,7 @@ class Economy(commands.Cog):
 					job = self.job_names[self.job_names_lower.index(job.lower())]
 
 				users[ctx.author.name]['job'] = job
-				with open('user.json', 'w') as f:
-					json.dump(users, f, indent=4)
+				dump_users(users)
 
 				embed = discord.Embed(title=f'You are now working at {job}!', color=discord.Color.green())
 				await ctx.send('', embed=embed)
@@ -265,8 +263,7 @@ class Economy(commands.Cog):
 					await ctx.send('', embed=embed)
 
 					users[ctx.author.name]['work_cd'] = 0.0
-					with open('user.json', 'w') as f:
-						json.dump(users, f, indent=4)
+					dump_users(users)
 
 	@commands.command()
 	async def shop(self, ctx):
@@ -274,7 +271,7 @@ class Economy(commands.Cog):
 		Bring up a shop menu to buy items.
 		Use:
 		`%sshop`'''
-		shop_embed = discord.Embed(title='Shop', description='\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_', color=discord.Color.purple())
+		shop_embed = discord.Embed(title='Shop', description=r'\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_', color=discord.Color.purple())
 
 		for shopitem in self.items:
 			cost = int_to_str(shopitem.cost)
@@ -316,12 +313,18 @@ class Economy(commands.Cog):
 		'''Description:
 		Buy items from the shop.
 		Use:
-		`%sbuy {item}`'''
+		`%sbuy {item} [amount]`'''
 
 		if not item:
 			embed = discord.Embed(title='You have not specified an item to buy.', color=discord.Color.red())
 			await ctx.send('', embed=embed)
 			return
+
+		try:
+			amount = int(item[-1])
+			item = item[:-1]
+		except ValueError:
+			amount = 1
 		
 		item = ' '.join(item)
 
@@ -329,28 +332,30 @@ class Economy(commands.Cog):
 			item_idx = self.item_strs.index(item.lower())
 			it = self.items[item_idx]
 
-			with open('user.json', 'r') as f:
-				users = json.load(f)
+			users = get_users()
 			
 			if ctx.author.name not in users:
 				add_user_to_milk(ctx.author.name)
-				with open('user.json', 'r') as f:
-					users = json.load(f)
+				users = get_users()
 			
-			if users[ctx.author.name]['balance'] >= it.cost:
-				edit_user_milk(ctx.author.name, -it.cost)
+			if users[ctx.author.name]['balance'] >= it.cost * amount:
+				edit_user_milk(ctx.author.name, -it.cost * amount)
+				users = get_users()
 
-				article = 'an' if it.name.startswith(('a', 'e', 'i', 'o', 'u')) else 'a'
-				bought_embed = discord.Embed(title=f'You have bought {article} {it.name}', color=discord.Color.green())
+				if amount == 1:
+					article = 'an' if it.name.startswith(('a', 'e', 'i', 'o', 'u')) else 'a'
+					bought_embed = discord.Embed(title=f'You have bought {article} {it.name}', color=discord.Color.green())
+				else:
+					bought_embed = discord.Embed(title=f'You have bought {amount} {it.name}s', color=discord.Color.green())
+				
 				await ctx.send('', embed=bought_embed)
 				
 				if it.name in users[ctx.author.name]['items']:
-					users[ctx.author.name]['items'][it.name] += 1
+					users[ctx.author.name]['items'][it.name] += amount
 				else:
-					users[ctx.author.name]['items'][it.name] = 1
+					users[ctx.author.name]['items'][it.name] = amount
 				
-				with open('user.json', 'w') as f:
-					json.dump(users, f, indent=4)
+				dump_users(users)
 			
 			else:
 				embed = discord.Embed(title='You do not have enough milk units to buy this item.', color=discord.Color.red())
@@ -369,17 +374,19 @@ class Economy(commands.Cog):
 		Aliases:
 		`inv`'''
 
-		inv_embed = discord.Embed(title=f'{ctx.author.name}\'s Inventory', description='\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_', color=discord.Color.purple())
+		inv_embed = discord.Embed(title=f'{ctx.author.name}\'s Inventory', description=r'\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_', color=discord.Color.purple())
 		
-		with open('user.json', 'r') as f:
-			users = json.load(f)
+		users = get_users()
 
 		if ctx.author.name not in users:
 			add_user_to_milk(ctx.author.name)
-			with open('user.json', 'r') as f:
-				users = json.load(f)
+			users = get_users()
 
 		for item, amount in users[ctx.author.name]['items'].items():
+			if item == 'calcium':
+				inv_embed.add_field(name=f':rock: Calcium - {amount}', value='Mineral dug from the calcium mines.', inline=False)
+				continue
+
 			it = self.items[self.item_strs.index(item.lower())]
 			inv_embed.add_field(name=f'{it.emoji} {it.name} - {amount}', value=it.description, inline=False)
 		
@@ -399,18 +406,153 @@ class Economy(commands.Cog):
 		
 		item = ' '.join(item)
 
-		with open('user.json', 'r') as f:
-			users = json.load(f)
+
+		users = get_users()
+
+		if ctx.author.name not in users:
+			add_user_to_milk(ctx.author.name)
+			users = get_users()
 
 		if item.lower() in map(str.lower, users[ctx.author.name]['items']):
 			it = self.items[self.item_strs.index(item.lower())]
-			users[ctx.author.name]['items'][it.name] -= 1
 
-			with open('user.json', 'w') as f:
-				json.dump(users, f, indent=4)
-				
-			await it.use(ctx, ctx.author.name)
+			amount = users[ctx.author.name]['items'][it.name]
+
+			if it.use == functions[2]:
+				amount += 1
+
+			if amount > 1:
+				amount -= 1
+				users[ctx.author.name]['items'][it.name] = amount
+			else:
+				del users[ctx.author.name]['items'][it.name]
+
+			dump_users(users)
+			
+			if it.use == functions[3]:
+				await it.use(ctx, ctx.author.name, self.bot)
+			else:
+				await it.use(ctx, ctx.author.name)
 
 		else:
 			embed = discord.Embed(title='Error!', description='You don\'t have this item or the item is invalid.', color=discord.Color.red())
 			await ctx.send('', embed=embed)
+
+	@commands.command()
+	async def dig(self, ctx):
+		'''Description:
+		Dig in the calcium mines for calcium to sell.
+		Use:
+		`%sdig`'''
+
+		users = get_users()
+		
+		if ctx.author.name not in users:
+			add_user_to_milk(ctx.author.name)
+			users = get_users
+		
+		if 'Shovel' not in users[ctx.author.name]['items']:
+			embed = discord.Embed(title='You don\'t have a shovel to dig with!', color=discord.Color.red())
+			await ctx.send('', embed=embed)
+			return
+
+		amount = random.randint(1, 200)
+
+		outcome = random.randint(49, 50)
+
+		if outcome < 50:
+			embed = discord.Embed(title=f'You have successfully mined {amount}mg of calcium!', color=discord.Color.green())
+
+			if 'calcium' not in users[ctx.author.name]['items']:
+				users[ctx.author.name]['items']['calcium'] = amount
+
+			else:
+				users[ctx.author.name]['items']['calcium'] += amount
+			
+		else:
+			embed = discord.Embed(title='Alas! Your shovel broke while mining.', description='You lost your shovel and didn\'t gain any calcium either.', color=discord.Color.red())
+
+			if users[ctx.author.name]['items']['Shovel'] > 1:
+				users[ctx.author.name]['items']['Shovel'] -= 1
+			else:
+				del users[ctx.author.name]['items']['Shovel']
+		
+		dump_users(users)
+
+		await ctx.send('', embed=embed)
+	
+	@commands.command()
+	async def sell(self, ctx, *item):
+		"""Description:
+		Sell your items for milk units.
+		Use:
+		`%ssell {item} [amount]`
+		"""
+
+		if not item:
+			embed = discord.Embed(title='Error!', description='No item listed to sell.', color=discord.Color.red())
+			await ctx.send('', embed=embed)
+			return
+
+		try:
+			amount = int(item[-1])
+			item = item[:-1]
+		except ValueError:
+			amount = 1
+
+		if amount < 1:
+			embed = discord.Embed(title='Error!', description='You can\'t sell fewer than 1 item.', color=discord.Color.red())
+			await ctx.send('', embed=embed)
+			return
+		
+		name = ' '.join(item)
+
+		users = get_users()
+
+		if ctx.author.name not in users:
+			add_user_to_milk(ctx.author.name)
+			users = get_users()
+
+		items = users[ctx.author.name]['items']
+
+		if name.lower() not in map(str.lower, items):
+			embed = discord.Embed(title='Error!', description='You do not own this item.', color=discord.Color.red())
+			await ctx.send('', embed=embed)
+			return
+		
+		if name.lower() == 'calcium':
+			if amount > items['calcium']:
+				embed = discord.Embed(title='Error!', description='You can\'t sell more calcium than you have.', color=discord.Color.red())
+				await ctx.send('', embed=embed)
+				return
+			
+			items['calcium'] -= amount
+
+			users[ctx.author.name]['balance'] += amount * 10
+
+			embed = discord.Embed(title=f'You have successfully sold {amount}mg of calcium!', description=f'You have received {amount * 10}mu!', color=discord.Color.green())
+
+			if items['calcium'] == 0:
+				del items['calcium']
+
+		else:
+			item = self.items[self.item_strs.index(name.lower())]
+
+			if amount > items[item.name]:
+				embed = discord.Embed(title='Error!', description=f'You can\'t sell more {name}s than you have.', color=discord.Color.red())
+				await ctx.send('', embed=embed)
+				return
+
+			items[item.name] -= amount
+			users[ctx.author.name]['balance'] += item.sellCost * amount
+			
+			plural = 's' if amount > 1 else ''
+
+			embed = discord.Embed(title=f'You have successfully sold {amount} {item.name}{plural}!', description=f'You have received {item.sellCost * amount}mu!', color=discord.Color.green())
+
+			if items[item.name] == 0:
+				del items[item.name]
+
+		await ctx.send('', embed=embed)
+		users[ctx.author.name]['items'] = items
+		dump_users(users)

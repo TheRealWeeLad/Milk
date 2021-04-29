@@ -195,3 +195,64 @@ class Gambling(commands.Cog):
 			await initial_hands.edit(embed=timeout)
 			await initial_hands.clear_reactions()
 
+	@commands.command(aliases=['slot'])
+	async def slots(self, ctx, amount_to_bet):
+		"""Description:
+		Bet your milk to spin the slot machine.
+		Use:
+		`%sslots {amount_to_bet}`
+		Aliases:
+		`slot`"""
+
+		bet = await pre_gambling(ctx, amount_to_bet)
+		if bet is None:
+			return
+
+		edit_user_milk(ctx.author.name, -bet)
+
+		slot_embed = discord.Embed(title='Slot Machine', description='Spinning...', color=discord.Color.blue())
+
+		slot_msg = await ctx.send('', embed=slot_embed)
+
+		await asyncio.sleep(3)
+
+		slots = []
+
+		for _ in range(3):
+			x = random.randint(1, 100)
+			
+			if x <= 5:
+				slots.append(':seven:')
+			elif x <= 25:
+				slots.append(':cherries:')
+			elif x <= 60:
+				slots.append(':butterfly:')
+			else:
+				slots.append(':cheese:')
+
+		slot_embed.description = f'{slots[0]} {slots[1]} {slots[2]}'
+
+		await slot_msg.edit(embed=slot_embed)
+
+		if slots[0] == slots[1] == slots[2]:
+			if ':seven:' in slots:
+				winnings = bet * 20
+			elif ':cherries:' in slots:
+				winnings = bet * 5
+			elif ':butterfly:' in slots:
+				winnings = round(bet * (20 / 7))
+			elif ':cheese:' in slots:
+				winnings = round(bet * 2.5)
+
+			slot_embed.add_field(name='You win!', value=f'You received {winnings}mu.', inline=False)
+			slot_embed.color = discord.Color.green()
+
+			edit_user_milk(ctx.author.name, winnings)
+
+			await slot_msg.edit(embed=slot_embed)
+		
+		else:
+			slot_embed.add_field(name='You lose!', value=f'You lost {bet}mu.', inline=False)
+			slot_embed.color = discord.Color.red()
+
+			await slot_msg.edit(embed=slot_embed)
