@@ -21,10 +21,13 @@ This is a simple discord bot made in python with economy features.
 - `.buy` - buy an item from the shop
 - `.inventory` - display your items
 - `.use` - use an item in your inventory
+- `.dig` - dig in the Calcium mines
+- `.sell` - sell your items for milk
 
 ## Gambling
 - `.coinflip` - bet your milk on a coinflip
 - `.blackjack` - bet your milk to play blackjack
+- `.slots` - bet your milk on slots
 
 ## Games
 - `.hangman` - play hangman with up to 3 other players
