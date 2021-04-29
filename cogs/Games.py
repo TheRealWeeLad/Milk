@@ -67,16 +67,21 @@ class Games(commands.Cog):
         await ctx.author.send('Tell me what to make the hidden message.')
 
         def check_msg(message):
-            return message.channel.type == discord.ChannelType.private and message.author.name != self.bot.user.name
+            return message.channel.type == discord.ChannelType.private and message.author.name == ctx.author.name
 
         while True:
-            msg = await self.bot.wait_for('message', timeout=60, check=check_msg)
-            message = msg.content
+            try:
+                msg = await self.bot.wait_for('message', timeout=60, check=check_msg)
+                message = msg.content
 
-            if len(message) > 30:
-                await ctx.author.send('This message is too long. Try another one.')
-            else:
-                break
+                if len(message) > 30:
+                    await ctx.author.send('This message is too long. Try another one.')
+                else:
+                    break
+            except asyncio.TimeoutError:
+                embed = discord.Embed(title='Timeout', description='You didn\'t respond in time.', color=discord.Color.red())
+                await ctx.send('', embed=embed)
+                return
 
         await ctx.author.send('This message has been accepted.')
         
